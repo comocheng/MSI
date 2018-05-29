@@ -15,39 +15,6 @@ import cantera as ct
 import pandas as pd
 import simulations as sim
 
-
-def free_flame2(gas,width,reactants):
-    #Inlet Temperature in Kelvin and Inlet Pressure in Pascals
-    #In this case we are setting the inlet T and P to room temperature conditions
-    To = gas.T
-    Po = gas.P
-
-    #Define the gas-mixutre and kinetics
-    #In this case, we are choosing a GRI3.0 gas
-    gas = ct.Solution('gri30.cti')
-
-    # Create a stoichiometric CH4/Air premixed mixture 
-    gas.set_equivalence_ratio(1.0, 'CH4', {'O2':1.0, 'N2':3.76})
-    gas.TP = To, Po
-    
-    # Domain width in metres
-    width = 0.114
-
-    # Create the flame object
-    flame = ct.FreeFlame(gas, width=width)
-
-    # Define tolerances for the solver
-    flame.set_refine_criteria(ratio=2, slope=0.1, curve=0.1)
-
-    # Define logging level
-    loglevel = 1
-    flame.solve(loglevel=loglevel, auto=True)
-    Su0 = flame.u[0]
-    print("Flame Speed is: {:.2f} cm/s".format(Su0*100))
-
-    #Note that the variable Su0 will also be used downsteam in the sensitivity analysis
-    
-    
 def free_flame(phi,fuel,reactants,gas,width,data=pd.DataFrame(columns=['z','T']),kinetic_sens=0,physical_sens=0,observables=[],physical_params=['T','P'],energycon=False,soret=True,flamespeed_sens=0):
     #when energycon is off treat flame as burner stabilized, with known T-profile
     gas.set_equivalence_ratio(phi, fuel, reactants)

@@ -175,7 +175,7 @@ class model_data:
             print('No Mole Fraction Data Provided')
 
             
-    def sepcies_slice_MF_differences(self,species_name):
+    def species_slice_MF_differences(self,species_name):
         if self.st_mf_differences.any() == True:
             if (int(np.shape(self.st_mf_differences)[0])) > 1:
                 position = self.MFExpIndex[1].index(species_name)
