@@ -13,7 +13,6 @@ from __future__ import division
 import numpy as np
 import cantera as ct
 import pandas as pd
-import simulations as sim
 
 def free_flame(phi,fuel,reactants,gas,width,data=pd.DataFrame(columns=['z','T']),kinetic_sens=0,physical_sens=0,observables=[],physical_params=['T','P'],energycon=False,soret=True,flamespeed_sens=0):
     #when energycon is off treat flame as burner stabilized, with known T-profile
@@ -157,15 +156,16 @@ def free_flame(phi,fuel,reactants,gas,width,data=pd.DataFrame(columns=['z','T'])
     for i in f.flame.component_names:
         solution[i]=f.solution(i)
     
-       
+    from simulations import model_data
+    
     if kinetic_sens==1 and bool(observables) and physical_sens!=1:
-        results = sim.model_data(simtype,kinetic_sens=S,Solution=solution,Index=sensIndex)        
+        results = model_data(simtype,kinetic_sens=S,Solution=solution,Index=sensIndex)        
         
     elif physical_sens==1 and bool(observables) and kinetic_sens!=1:
-        results = sim.model_data(simtype,Solution=solution,pIndex=psensIndex,physical_sens=pS)
+        results = model_data(simtype,Solution=solution,pIndex=psensIndex,physical_sens=pS)
         
     elif kinetic_sens==1 and physical_sens==1 and bool(observables):
-        results = sim.model_data(simtype,Solution=solution,pIndex=psensIndex,Index=sensIndex,physical_sens=pS,kinetic_sens=S)
+        results = model_data(simtype,Solution=solution,pIndex=psensIndex,Index=sensIndex,physical_sens=pS,kinetic_sens=S)
         
     elif kinetic_sens!=1 and physical_sens!=1:
         Index = [f.grid.tolist(),gas.reaction_equations()] 

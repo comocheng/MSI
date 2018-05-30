@@ -20,7 +20,7 @@ import time
 
 # This class is used to store the data from simulations, including both speciation data and sensitivities
 # Simulation results are stored in Pandas Dataframes, while sensitivities are stored in 3d arrays accessible by index values
-class model_data:
+class model_data(object):
     
     #__init__ class is used to initialize the object.  has built in functions to combine kinetic and physical sensitivities into an
     #aggregate array for ease of use
