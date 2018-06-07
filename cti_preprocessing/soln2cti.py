@@ -287,7 +287,7 @@ def write(solution,filearg):
                               ':  ':':',
                               '.0':"",
                               ',':'',
-                              ' ': '  '
+                              ' ': ' '
                               }
             #build 7-coeff NASA polynomial array
             nasa_coeffs_1 = []
