@@ -419,11 +419,11 @@ def write(solution,filearg):
                     if s not in trimmed_solution.species_names:
                         del trimmed_efficiencies[s]
                 arrhenius = build_arrhenius(equation_object, equation_type)
-                replace_list_2 = {"{":  "\"",
+                replace_list_2 = {"{": "\"",
                                   "\'": "",
                                   ": ": ":",
-                                  ",":  " ",
-                                  "}":  "\""
+                                  ",": " ",
+                                  "}": "\""
                                   }
                 efficiencies_string = replace_multiple(
                                                     str(trimmed_efficiencies),
