@@ -39,6 +39,6 @@ else:
     #print(clean_species)
     for x in clean_mechanism.reactions():
        print(x,'\n')
-    from cti_preprocessing import soln2cti
+    from cti_core import soln2cti
     print("writing cleaned file at ", cti_path_clean)
     soln2cti.write(clean_mechanism,cti_path_clean)

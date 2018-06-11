@@ -1,7 +1,7 @@
 import sys
 sys.path.append('..')
 
-from cti_preprocessing import soln2cti as cti_pp
+from cti_core import soln2cti as cti_pp
 
 import cantera as ct
 gas = ct.Solution("../data/test_data/lam.cti")
