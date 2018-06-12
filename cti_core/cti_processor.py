@@ -14,23 +14,23 @@ class Processor(object):
         soln2cti(self.solution, self.path)
     
     #expects a list of integers representing reaction indices to remove
-    def remove_reactions(self, to_remove):
+    #Cantera as of 2.3 does not have a native remove reaction function
+    def remove_reactions(self, to_remove:list):
+        clean_reactions=[]
         for i in to_remove:
             if not isinstance(i,int):
-                print("invalid index type, skipping")
-                continue
-            elif i<0:
-                print("invalid index, skipping")
-                continue
-            clean_reactions = []
-            for i in range(0,self.solution.n_reactions):
-                if i not in to_remove:
-                    clean_reactions.append(self.solution.reaction(i))
+                print("{0} not an integer, will not be removed".format(i))
+            else:
+                print("remove index {0}, reaction {1}".format(i,self.solution.reaction(i)))
 
-            self.solution = ct.Solution(thermo='IdealGas',
-                                        kinetics='GasKinetics',
-                                        species=self.species(),
-                                        reactions=clean_reactions)
+        for i in range(0,self.solution.n_reactions):
+            if i not in to_remove:
+                clean_reactions.append(self.solution.reaction(i))
+                  
+        self.solution = ct.Solution(thermo='IdealGas',
+                                    kinetics='GasKinetics',
+                                    species=self.solution.species(),
+                                    reactions=clean_reactions)
 
     #appends list of reaction indices with those from a file
     #expects format of one index per line, more behavior in future?
@@ -46,15 +46,17 @@ class Processor(object):
             print("Error: {0}".format(e))
             return list_to_add
 
-    #varialble number of args, can take a file path, list of numbers or both
+    #varialble number of args, can take a file path, list of numbers or both, or single index
     #removes the specified reactions from the solution object created in constructor
     def prune(self,*args):
         if len(args)==1:
             if isinstance(args[0],str):
-                l = appendList(args[0], [])
-                remove_reactions(l)
+                l = self.appendList(args[0], [])
+                self.remove_reactions(l)
             elif isinstance(args[0],list):
-                remove_reactions(list)
+                self.remove_reactions(args[0])
+            elif isinstance(args[0], int):
+                self.remove_reactions([args[0]])
             else:
                 print("When using a single argument, give only a file path", 
                        "or list of integers.")
@@ -63,8 +65,7 @@ class Processor(object):
                 print("Please enter parameters as prune(path,list) when using 2 arguments")
                 return 
              else:
-                l = appendList(args[0],args[1])
-                remove_reactions(l)
-        #only hits here if wrong number of arguments given
-        print("Incorrect number of arguments.")
-        return
+                l = self.appendList(args[0],args[1])
+                self.remove_reactions(l)
+        else:
+            print("Incorrect number of arguments.")
