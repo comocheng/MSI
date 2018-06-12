@@ -12,9 +12,9 @@ class Processor(object):
     
     def write_to_file(self,new_path=''):
         if new_path == '':
-            soln2cti(self.solution, self.path.split(".cti")[0]+"_processed.cti")
+            soln2cti.write(self.solution, self.path.split(".cti")[0]+"_processed.cti")
         else:
-            soln2cti(self.solution,new_path)
+            soln2cti.write(self.solution,new_path)
     
     #expects a list of integers representing reaction indices to remove
     #Cantera as of 2.3 does not have a native remove reaction function
