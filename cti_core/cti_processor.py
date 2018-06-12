@@ -10,8 +10,11 @@ class Processor(object):
         self.cti_path = path
         self.solution = ct.Solution(path) #cantera handles its own errors, no need to except
     
-    def write_to_file(self):
-        soln2cti(self.solution, self.path)
+    def write_to_file(self,new_path=''):
+        if new_path == '':
+            soln2cti(self.solution, self.path.split(".cti")[0]+"_processed.cti")
+        else:
+            soln2cti(self.solution,new_path)
     
     #expects a list of integers representing reaction indices to remove
     #Cantera as of 2.3 does not have a native remove reaction function
