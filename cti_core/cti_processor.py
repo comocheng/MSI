@@ -11,7 +11,7 @@ class Processor(object): #handles one optimization but may add support for multi
         self.active_parameter_dictionary = {} # nothing for right now, options later for adding
     
     def add_active_parameter(self, r_index=-1,r_type='',dels=[], h_dels=[], l_dels=[],rate_list=[]):
-        self.active_parameter_dictionary[reaction_ind--]=active_parameter(r_type,
+        self.active_parameter_dictionary[reaction_ind-1]=active_parameter(r_type,
                                                                         dels,h_dels,l_dels,
                                                                         rate_list)
 
@@ -34,7 +34,7 @@ class Processor(object): #handles one optimization but may add support for multi
             if not isinstance(i,int):
                 print("{0} not an integer, will not be removed".format(i))
             else:
-                print("remove index {0}, reaction {1}".format(i,self.solution.reaction(i--)))
+                print("remove index {0}, reaction {1}".format(i,self.solution.reaction(i-1)))
 
         for i in range(0,self.solution.n_reactions):
             if i not in to_remove:
