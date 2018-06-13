@@ -11,14 +11,32 @@ class Processor(object): #handles one optimization but may add support for multi
         self.active_parameter_dictionary = {} # nothing for right now, options later for adding
     
     def add_active_parameter(self, r_index=-1,r_type='',dels=[], h_dels=[], l_dels=[],rate_list=[]):
-        self.active_parameter_dictionary[r_index-1]=active_parameter(r_type,
-                                                                        dels,h_dels,l_dels,
-                                                                        rate_list)
 
-    
+        #checks so can't screw up input ie not give needed dels for a particular reaction type
+        #only checks agains Reaction,ElementaryReaction, and Falloff, Plog will check in future
+
+        if r_type=='EmentaryReaction':
+            print('nothing')
+
+        self.active_parameter_dictionary[r_index-1]=active_parameter(r_type,
+                                                                     dels,h_dels,l_dels,
+                                                                     rate_list)
+    #sets default parameters for all reactions in solution according to corropsonding r type
+    def set_default_parameters(self):
+        for i in range(0, self.solution.n_reactions):
+            r_type = self.soluion.reaction_type(i)
+            if r_type == 'Reaction':
+                print('x')
+            elif r_type == 'ElementaryReaction':
+                print('y')
+            elif r_type == 'FalloffReaction':
+                print('z')
+            elif r_type == 'PlogReaction':
+                print('a')
+
     def write_to_file(self,new_path=''):
         if new_path == '':
-            new_path=self.path.split(".cti")[0]+"_processed.cti"
+            new_path=self.cti_path.split(".cti")[0]+"_processed.cti"
             soln2cti.write(self.solution, new_path)
         else:
             soln2cti.write(self.solution,new_path)
@@ -27,7 +45,7 @@ class Processor(object): #handles one optimization but may add support for multi
         return new_path
     #expects a list of integers representing reaction indices to remove
     #Cantera as of 2.3 does not have a native remove reaction function
-    #assumes input indices are from 1 to n, then subs for cantera to do 0 - n-1
+    #assumes input indices are from 1 to n, then subs for cantera to do 0 to n-1
     def remove_reactions(self, to_remove:list):
         clean_reactions=[]
         for i in to_remove:
@@ -48,23 +66,25 @@ class Processor(object): #handles one optimization but may add support for multi
     #appends list of reaction indices with those from a file
     #expects format of one index per line, more behavior in future?
     def append_list(self, path, list_to_add):
-        try:
-            f = open(path,'r')
-            for i,line in enumerate(f):
-                try:
-                    list_to_add.append(int(line))
-                except ValueError as e:
-                    print("Error: {0}".format(e))
-        except IOError as e:
-            print("Error: {0}".format(e))
-            return list_to_add
+       try:
+           f = open(path,'r')
+           for i,line in enumerate(f):
+               try:
+                  list_to_add.append(int(line.strip()))
 
-    #varialble number of args, can take a file path, list of numbers or both, or single index
+               except ValueError as e:
+                  print('Error on index {0}: {1}\n Skipping index'.format(line,e))
+                
+       except IOError as e:
+            print("Error: {0}".format(e))
+       return list_to_add
+
+    #variable number of args, can take a file path, list of numbers or both, or single index
     #removes the specified reactions from the solution object created in constructor
     def prune(self,*args):
         if len(args)==1:
             if isinstance(args[0],str):
-                l = self.appendList(args[0], [])
+                l = self.append_list(args[0], [])
                 self.remove_reactions(l)
             elif isinstance(args[0],list):
                 self.remove_reactions(args[0])
@@ -78,7 +98,7 @@ class Processor(object): #handles one optimization but may add support for multi
                 print("Please enter parameters as prune(path,list) when using 2 arguments")
                 return 
              else:
-                l = self.appendList(args[0],args[1])
+                l = self.append_list(args[0],args[1])
                 self.remove_reactions(l)
         else:
             print("Incorrect number of arguments.")
