@@ -1,5 +1,24 @@
 # MSI
 ## Current Project Structure
+``` Bash
+MSI
+├── cti_core
+│   ├── cti_combine.py
+│   ├── cti_processor.py
+│   ├── soln2cti.py
+│   └── testind
+├── data
+├── instruments
+│   └── shock_tube.py
+├── README.md
+├── simulations
+│   ├── free_flame.py
+│   └── simulations.py
+├── tests
+│   
+└── utilities
+    └── cti_remover.py
+```
 
 ### Usage:
 
@@ -12,7 +31,6 @@ Type "help", "copyright", "credits" or "license" for more information.
 >>> test_processor = pr.Processor('./MSI/data/test_data/FFCM1.cti')
 >>> test_processor.prune('./MSI/cti_core/testind')
 Error on index 5say
-: invalid literal for int() with base 10: '5say'
  Skipping index
 remove index 1, reaction H + O2 <=> O + OH
 remove index 2, reaction H2 + O <=> H + OH
