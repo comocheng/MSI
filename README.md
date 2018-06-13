@@ -4,7 +4,7 @@
 ### Usage:
 
 Example Pruning in a python prompt:
-''' Python
+``` Python
 Python 3.6.5 |Anaconda, Inc.| (default, Apr 29 2018, 16:14:56) 
 [GCC 7.2.0] on linux
 Type "help", "copyright", "credits" or "license" for more information.
@@ -26,4 +26,4 @@ remove index 77, reaction CH2(S) + H2O2 <=> CH3O + OH
 >>> test_processor.write_to_file()
 './MSI/data/test_data/FFCM1_processed.cti'
 >>> exit()
-'''
+```
