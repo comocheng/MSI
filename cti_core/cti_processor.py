@@ -10,12 +10,9 @@ class Processor(object): #handles one optimization but may add support for multi
         self.solution = ct.Solution(path) #cantera handles its own errors, no need to except
         self.active_parameter_dictionary = {} # nothing for right now, options later for adding
     
-    def add_active_parameter(reaction_index=-1, r_type='',del_A=None,
-                             del_n=None, del_Ea=None, high_rate=None, low_rate=None,
-                             rate_list=None):
+    def add_active_parameter(self, r_index=-1,r_type='',dels=[], h_dels=[], l_dels=[],rate_list=[]):
         self.active_parameter_dictionary[reaction_ind]=active_parameter(r_type,
-                                                                        del_A,del_n,del_Ea,
-                                                                        high_rate,low_rate,
+                                                                        dels,h_dels,l_dels,
                                                                         rate_list)
 
     
@@ -87,14 +84,10 @@ class Processor(object): #handles one optimization but may add support for multi
 
 #represents an active parameter set which applies to a set of reactions
 class active_parameter(object):
-    def __init__(self, r_type='', 
-                 del_A=None,del_n=None,del_Ea=None,
-                 high_rate=None,low_rate=None,rate_list=None):
+    def __init__(self, r_type='',dels=[], h_dels=[], l_dels=[],rate_list=[]):
         self.r_type     = r_type
-        self.del_A      = del_A
-        self.del_n      = del_n
-        self.del_Ea     = del_Ea
-        self.high_rate  = high_rate
-        self.low_rate   = low_rate
+        self.dels       = dels
+        self.hdels      = h_dels
+        self.l_dels     = l_dels
         self.rate_list  = rate_list
 
