@@ -11,7 +11,7 @@ class Processor(object): #handles one optimization but may add support for multi
         self.active_parameter_dictionary = {} # nothing for right now, options later for adding
     
     def add_active_parameter(self, r_index=-1,r_type='',dels=[], h_dels=[], l_dels=[],rate_list=[]):
-        self.active_parameter_dictionary[reaction_ind-1]=active_parameter(r_type,
+        self.active_parameter_dictionary[r_index-1]=active_parameter(r_type,
                                                                         dels,h_dels,l_dels,
                                                                         rate_list)
 
