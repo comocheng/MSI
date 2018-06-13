@@ -1,14 +1,23 @@
 import cantera as ct
-import soln2cti
-import sys
+from . import soln2cti
 #class holding different methods of processing cti files
 
-class Processor(object):
+class Processor(object): #handles one optimization but may add support for multiple later
 
     #only thing all processing needs is the cti file
     def __init__(self, path):
         self.cti_path = path
         self.solution = ct.Solution(path) #cantera handles its own errors, no need to except
+        self.active_parameter_dictionary = {} # nothing for right now, options later for adding
+    
+    def add_active_parameter(reaction_index=-1, r_type='',del_A=None,
+                             del_n=None, del_Ea=None, high_rate=None, low_rate=None,
+                             rate_list=None):
+        self.active_parameter_dictionary[reaction_ind]=active_parameter(r_type,
+                                                                        del_A,del_n,del_Ea,
+                                                                        high_rate,low_rate,
+                                                                        rate_list)
+
     
     def write_to_file(self,new_path=''):
         if new_path == '':
@@ -65,7 +74,7 @@ class Processor(object):
                 self.remove_reactions([args[0]])
             else:
                 print("When using a single argument, give only a file path", 
-                       "or list of integers.")
+                       "or list of integers, or a single integer")
         elif len(args)==2:
              if not isinstance(args[0],str) or not isinstance(args[1],list):
                 print("Please enter parameters as prune(path,list) when using 2 arguments")
@@ -75,3 +84,17 @@ class Processor(object):
                 self.remove_reactions(l)
         else:
             print("Incorrect number of arguments.")
+
+#represents an active parameter set which applies to a set of reactions
+class active_parameter(object):
+    def __init__(self, r_type='', 
+                 del_A=None,del_n=None,del_Ea=None,
+                 high_rate=None,low_rate=None,rate_list=None):
+        self.r_type     = r_type
+        self.del_A      = del_A
+        self.del_n      = del_n
+        self.del_Ea     = del_Ea
+        self.high_rate  = high_rate
+        self.low_rate   = low_rate
+        self.rate_list  = rate_list
+
