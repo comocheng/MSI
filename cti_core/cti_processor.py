@@ -45,7 +45,12 @@ class Processor(object): #handles one optimization but may add support for multi
 
         #checks so can't screw up input ie not give needed dels for a particular reaction type
         #only checks agains Reaction,ElementaryReaction, and Falloff, Plog will check in future
-        
+        if r_index == -1:
+            print("Error: specify a reaction index")
+            return False
+        if r_index < 1 or r_index > self.solution.n_reactions:
+            print("Error: index out of bounds")
+            return False
         if r_type not in self.valid_reactions:
             print('Error: Non supported reaction type {0}'.format(r_type))
             print('Valid Reaction Types:', self.valid_reactions)
@@ -98,7 +103,7 @@ class Processor(object): #handles one optimization but may add support for multi
         return True 
     #sets default parameters for all reactions in solution according to corropsonding r type
     def set_default_parameters(self):
-        for i in range(0, self.solution.n_reactions):
+        for i in range(1, self.solution.n_reactions):
             if isinstance(self.solution.reaction(i),ct._cantera.ElementaryReaction):
                 self.add_active_parameter(r_index = i,r_type = 'ElementaryReaction',dels=[0.0,0.0,0.0])
             elif isinstance(self.solution.reaction(i),ct._cantera.ThreeBodyReaction):
@@ -127,13 +132,14 @@ class Processor(object): #handles one optimization but may add support for multi
             new_path=self.cti_path.split(".cti")[0]+"_processed.param"
         f = open(new_path,'w')
         for r_index in self.active_parameter_dictionary.keys():
-            data = "Reaction {0}:\nType: {1}\ndels: {2}\nh_dels: {3}\nl_dels: {4}\nrate_list: {5}\n".format(
-            self.solution.reaction(r_index + 1),
+            data = "Reaction {6}: {0}:\nType: {1}\ndels: {2}\nh_dels: {3}\nl_dels: {4}\nrate_list: {5}\n".format(
+            self.solution.reaction(r_index),
             self.active_parameter_dictionary[r_index].r_type,
             self.active_parameter_dictionary[r_index].dels,
             self.active_parameter_dictionary[r_index].h_dels,
             self.active_parameter_dictionary[r_index].l_dels,
-            self.active_parameter_dictionary[r_index].rate_list)
+            self.active_parameter_dictionary[r_index].rate_list,
+            r_index+1)
             f.write(data)
         self.param_path=new_path
         return new_path

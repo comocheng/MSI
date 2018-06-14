@@ -115,7 +115,7 @@ True
 ```
 Data is formatted like this:
 ```
-Reaction H + O2 <=> O + OH:                                                     
+Reaction 1: H + O2 <=> O + OH:                                                     
 Type: ElementaryReaction  
 dels: [0.0, 0.0, 0.0]     
 h_dels: []
