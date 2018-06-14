@@ -22,7 +22,7 @@ MSI
 
 ### Usage:
 
-Example: Pruning in a python prompt-
+Example: CTI pruning in a python prompt-
 ``` Python
 Python 3.6.5 |Anaconda, Inc.| (default, Apr 29 2018, 16:14:56) 
 [GCC 7.2.0] on linux
@@ -46,7 +46,7 @@ remove index 77, reaction CH2(S) + H2O2 <=> CH3O + OH
 >>> exit()
 ```
 
-Example: Active Parameter Setting, Editing, and Getting in a python prompt-
+Example: active parameter setting, editing, and getting in a python prompt-
 ``` Python
 Python 3.6.5 |Anaconda, Inc.| (default, Apr 29 2018, 16:14:56) 
 [GCC 7.2.0] on linux
@@ -76,3 +76,28 @@ l_dels: []
 <MSI.cti_core.cti_processor.active_parameter object at 0x7fc8ff7cb978>
 >>> exit()
 ```
+Example: active parameter setting with processor initialization in a python prompt
+``` Python
+``` Bash
+Python 3.6.5 |Anaconda, Inc.| (default, Apr 29 2018, 16:14:56) 
+[GCC 7.2.0] on linux
+Type "help", "copyright", "credits" or "license" for more information.
+>>> from MSI.cti_core import cti_processor
+>>> test = cti_processor.Processor('MSI/data/test_data/FFCM1.cti')
+>>> test.get_active_parameter(1)
+Error: active parameter dictionary empty. Please initialize or add a parameter to the dictionary
+-1
+>>> test = cti_processor.Processor('MSI/data/test_data/FFCM1.cti',1)
+>>> test.get_active_parameter(1)
+<MSI.cti_core.cti_processor.active_parameter object at 0x7f04fe6cbc18>
+>>> test.get_active_parameter(1,1)
+Reaction H + O2 <=> O + OH:
+Type: ElementaryReaction
+dels: [0.0, 0.0, 0.0]
+h_dels: []
+l_dels: []
+ rate_list: []
+<MSI.cti_core.cti_processor.active_parameter object at 0x7f04fe6cbc18>
+>>> exit()
+```
+

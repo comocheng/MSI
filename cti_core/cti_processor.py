@@ -5,7 +5,7 @@ from . import soln2cti
 class Processor(object): #handles one optimization but may add support for multiple later
 
     #only thing all processing needs is the cti file
-    def __init__(self, path):
+    def __init__(self, path, p_flag = 0):
         self.cti_path = path
         self.solution = ct.Solution(path) #cantera handles its own errors, no need to except
         self.active_parameter_dictionary = {} # nothing for right now, options later for adding
@@ -13,9 +13,22 @@ class Processor(object): #handles one optimization but may add support for multi
                                 'ThreeBodyReaction',
                                 'FalloffReaction',
                                 'PlogReaction']
-
+        if p_flag == 1:
+            self.set_default_parameters()
     #v flag for verbose output, may add out for A=, n= , Ea = etc later, and rate list for plog support
     def get_active_parameter(self,r_index, v=0):
+        if len(self.active_parameter_dictionary) == 0:
+            print("Error: active parameter dictionary empty. Please initialize or add a parameter to the dictionary")
+            return -1
+        elif r_index-1 < 0:
+            print("Error: negative reaction index")
+            return -1
+        elif r_index-1 >= self.solution.n_reactions:
+            print("Error: invalid index out of bounds")
+            return -1
+        elif r_index not in self.active_parameter_dictionary.keys():
+            print("Error: reaction {0} at index{1} has no parameter entry".format(self.solution.reaction(i-1),i))
+            return -1
         if v==1:
             print("Reaction {0}:\nType: {1}\ndels: {2}\nh_dels: {3}\nl_dels: {4}\n rate_list: {5}".format(
                 self.solution.reaction(r_index - 1),
