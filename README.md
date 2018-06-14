@@ -22,7 +22,7 @@ MSI
 
 ### Usage:
 
-Example Pruning in a python prompt:
+Example: Pruning in a python prompt-
 ``` Python
 Python 3.6.5 |Anaconda, Inc.| (default, Apr 29 2018, 16:14:56) 
 [GCC 7.2.0] on linux
@@ -43,5 +43,36 @@ remove index 4, reaction H2 + HE <=> 2 H + HE
 remove index 77, reaction CH2(S) + H2O2 <=> CH3O + OH
 >>> test_processor.write_to_file()
 './MSI/data/test_data/FFCM1_processed.cti'
+>>> exit()
+```
+
+Example: Active Parameter Setting, Editing, and Getting in a python prompt-
+``` Python
+Python 3.6.5 |Anaconda, Inc.| (default, Apr 29 2018, 16:14:56) 
+[GCC 7.2.0] on linux
+Type "help", "copyright", "credits" or "license" for more information.
+>>> from MSI.cti_core import cti_processor
+>>> test = cti_processor.Processor('MSI/data/test_data/FFCM1.cti')
+>>> test.set_default_parameters()
+>>> test.get_active_parameter(1)
+<MSI.cti_core.cti_processor.active_parameter object at 0x7fc90cf21518>
+>>> test.get_active_parameter(1,1)
+Reaction H + O2 <=> O + OH:
+Type: ElementaryReaction
+dels: [0.0, 0.0, 0.0]
+h_dels: []
+l_dels: []
+ rate_list: []
+<MSI.cti_core.cti_processor.active_parameter object at 0x7fc90cf21518>
+>>> test.add_active_parameter(1,'ElementaryReaction',dels=[.6,.6,.6])
+True
+>>> test.get_active_parameter(1,1)
+Reaction H + O2 <=> O + OH:
+Type: ElementaryReaction
+dels: [0.6, 0.6, 0.6]
+h_dels: []
+l_dels: []
+ rate_list: []
+<MSI.cti_core.cti_processor.active_parameter object at 0x7fc8ff7cb978>
 >>> exit()
 ```

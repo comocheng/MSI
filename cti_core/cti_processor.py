@@ -14,6 +14,18 @@ class Processor(object): #handles one optimization but may add support for multi
                                 'FalloffReaction',
                                 'PlogReaction']
 
+    #v flag for verbose output, may add out for A=, n= , Ea = etc later, and rate list for plog support
+    def get_active_parameter(self,r_index, v=0):
+        if v==1:
+            print("Reaction {0}:\nType: {1}\ndels: {2}\nh_dels: {3}\nl_dels: {4}\n rate_list: {5}".format(
+                self.solution.reaction(r_index - 1),
+                self.active_parameter_dictionary[r_index-1].r_type,
+                self.active_parameter_dictionary[r_index-1].dels,
+                self.active_parameter_dictionary[r_index-1].h_dels,
+                self.active_parameter_dictionary[r_index-1].l_dels,
+                self.active_parameter_dictionary[r_index-1].rate_list))
+        return self.active_parameter_dictionary[r_index-1]
+
     #processor maintains the activate parameters, they are not manipulated in this class
     def add_active_parameter(self, r_index=-1,r_type='',dels=[], h_dels=[], l_dels=[],rate_list=[]):
 
@@ -73,17 +85,16 @@ class Processor(object): #handles one optimization but may add support for multi
     #sets default parameters for all reactions in solution according to corropsonding r type
     def set_default_parameters(self):
         for i in range(0, self.solution.n_reactions):
-            r_type = self.soluion.reaction_type(i)
-            if r_type == 'ElementaryReaction':
-                add_active_parameter(r_index = i,r_type = r_type,dels=[0,0,0])
-            elif r_type == 'ThreeBodyReaction':
-                add_active_parameter(r_index = i,r_type = r_type,dels=[0,0,0])
-            elif r_type == 'FalloffReaction':
-                add_active_parameter(r_index = i,r_type = r_type,h_dels=[0,0,0],l_dels=[0,0,0])
-            elif r_type == 'PlogReaction':
+            if isinstance(self.solution.reaction(i),ct._cantera.ElementaryReaction):
+                self.add_active_parameter(r_index = i,r_type = 'ElementaryReaction',dels=[0.0,0.0,0.0])
+            elif isinstance(self.solution.reaction(i),ct._cantera.ThreeBodyReaction):
+                self.add_active_parameter(r_index = i,r_type = 'ThreeBodyReaction',dels=[0.0,0.0,0.0])
+            elif isinstance(self.solution.reaction(i),ct._cantera.FalloffReaction):
+                self.add_active_parameter(r_index = i,r_type = 'FalloffReaction',h_dels=[0.0,0.0,0.0],l_dels=[0.0,0.0,0.0])
+            elif isinstance(self.solution.reaction(i),ct._cantera.PlogReaction):
                 print('PlogReaction not supported yet, skipping')
             else:
-                print('Unsupported Reaction Type {0}, skipping'.format(r_type))
+                print('Unsupported Reaction Type {0},index {1} skipping'.format(self.solution.reaction(i).reaction_type(),i+1))
 
     def write_to_file(self,new_path=''):
         if new_path == '':
@@ -159,7 +170,7 @@ class active_parameter(object):
     def __init__(self, r_type='',dels=[], h_dels=[], l_dels=[],rate_list=[]):
         self.r_type     = r_type
         self.dels       = dels
-        self.hdels      = h_dels
+        self.h_dels      = h_dels
         self.l_dels     = l_dels
         self.rate_list  = rate_list
 
