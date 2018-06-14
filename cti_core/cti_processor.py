@@ -9,23 +9,72 @@ class Processor(object): #handles one optimization but may add support for multi
         self.cti_path = path
         self.solution = ct.Solution(path) #cantera handles its own errors, no need to except
         self.active_parameter_dictionary = {} # nothing for right now, options later for adding
-    
+        self.valid_reactions = ['ElementaryReaction',
+                                'ThreeBodyReaction',
+                                'FalloffReaction',
+                                'PlogReaction']
+
+    #processor maintains the activate parameters, they are not manipulated in this class
     def add_active_parameter(self, r_index=-1,r_type='',dels=[], h_dels=[], l_dels=[],rate_list=[]):
 
         #checks so can't screw up input ie not give needed dels for a particular reaction type
         #only checks agains Reaction,ElementaryReaction, and Falloff, Plog will check in future
+        
+        if r_type not in self.valid_reactions:
+            print('Error: Non supported reaction type {0}'.format(r_type))
+            print('Valid Reaction Types:', self.valid_reactions)
+        if r_type=='ElementaryReaction' or r_type == 'ThreeBodyReaction':
+            if len(h_dels)!=0 or len(l_dels)!=0 or len(rate_list)!=0:
+                print('Error: Invalid parameter given, {0}  only takes the dels list'.format(r_type))
+                return False
+            if len(dels) == 0:
+                print('Error: dels cannot be empty for generating ThreeBodyReaction parameter')
+                return False
+            if len(dels) != 3:
+                print('Error: dels takes 3 arguments: A,n,Ea')
+                return False
+            for x in dels:
+                if not isinstance(x,float):
+                    print('Error: {0} is not a float, all del vals must be floats'.format(x))
+                    return False
+        if r_type=='FalloffReaction':
+            if len(dels)!=0 or len(rate_list)!=0:
+                print('Error: Invalid parameter given, {0}  only takes the h_dels and l_dels '.format(r_type))
+                return False
+            if len(h_dels) == 0:
+                print('Error: h_dels cannot be empty for generating FalloffReaction parameter')
+                return False
+            if len(l_dels) == 0:
+                print('Error: l_dels cannot be empty for generating FalloffReaction parameter')
+                return False
+            if len(h_dels) != 3:
+                print('Error: h_dels takes 3 arguments: A,n,Ea')
+                return False
+            if len(l_dels) != 3:
+                print('Error: l_dels takes 3 arguments: A,n,Ea')
+                return False
 
-        if r_type=='EmentaryReaction':
-            print('nothing')
+            for x,y in zip(h_dels,l_dels):
+                if not isinstance(x,float):
+                    print('Error: {0} in h_dels is not a float, all del vals must be floats'.format(x))
+                if not isinstance(y,float):
+                    print('Error: {0} in l_dels is not a float, all del vals must be floats'.format(y))
+                    return False
 
+        elif r_type == 'PlogReaction':
+            print('not supported yet')
+            return False
+        
+        
         self.active_parameter_dictionary[r_index-1]=active_parameter(r_type,
                                                                      dels,h_dels,l_dels,
                                                                      rate_list)
+        return True 
     #sets default parameters for all reactions in solution according to corropsonding r type
     def set_default_parameters(self):
         for i in range(0, self.solution.n_reactions):
             r_type = self.soluion.reaction_type(i)
-            if r_type == 'Reaction':
+            if r_type == 'ThreeBodyReaction':
                 print('x')
             elif r_type == 'ElementaryReaction':
                 print('y')
