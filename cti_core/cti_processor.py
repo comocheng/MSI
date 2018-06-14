@@ -141,6 +141,7 @@ class Processor(object): #handles one optimization but may add support for multi
     #expects a list of integers representing reaction indices to remove
     #Cantera as of 2.3 does not have a native remove reaction function
     #assumes input indices are from 1 to n, then subs for cantera to do 0 to n-1
+    #change it so it only write necessary lines for each reaction type, don't worry about plog
     def remove_reactions(self, to_remove:list):
         clean_reactions=[]
         for i in to_remove:
