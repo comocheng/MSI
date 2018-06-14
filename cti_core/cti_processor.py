@@ -74,14 +74,16 @@ class Processor(object): #handles one optimization but may add support for multi
     def set_default_parameters(self):
         for i in range(0, self.solution.n_reactions):
             r_type = self.soluion.reaction_type(i)
-            if r_type == 'ThreeBodyReaction':
-                print('x')
-            elif r_type == 'ElementaryReaction':
-                print('y')
+            if r_type == 'ElementaryReaction':
+                add_active_parameter(r_index = i,r_type = r_type,dels=[0,0,0])
+            elif r_type == 'ThreeBodyReaction':
+                add_active_parameter(r_index = i,r_type = r_type,dels=[0,0,0])
             elif r_type == 'FalloffReaction':
-                print('z')
+                add_active_parameter(r_index = i,r_type = r_type,h_dels=[0,0,0],l_dels=[0,0,0])
             elif r_type == 'PlogReaction':
-                print('a')
+                print('PlogReaction not supported yet, skipping')
+            else:
+                print('Unsupported Reaction Type {0}, skipping'.format(r_type))
 
     def write_to_file(self,new_path=''):
         if new_path == '':
