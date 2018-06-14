@@ -13,10 +13,11 @@ class Processor(object): #handles one optimization but may add support for multi
                                 'ThreeBodyReaction',
                                 'FalloffReaction',
                                 'PlogReaction']
+        self.param_path = ''#may give option to load in a param file
         if p_flag == 1:
             self.set_default_parameters()
     #v flag for verbose output, may add out for A=, n= , Ea = etc later, and rate list for plog support
-    def get_active_parameter(self,r_index, v=0):
+    def get_active_parameter(self,r_index, verbose=0):
         if len(self.active_parameter_dictionary) == 0:
             print("Error: active parameter dictionary empty. Please initialize or add a parameter to the dictionary")
             return -1
@@ -38,7 +39,7 @@ class Processor(object): #handles one optimization but may add support for multi
                 self.active_parameter_dictionary[r_index-1].l_dels,
                 self.active_parameter_dictionary[r_index-1].rate_list))
         return self.active_parameter_dictionary[r_index-1]
-
+    
     #processor maintains the activate parameters, they are not manipulated in this class
     def add_active_parameter(self, r_index=-1,r_type='',dels=[], h_dels=[], l_dels=[],rate_list=[]):
 
@@ -108,7 +109,8 @@ class Processor(object): #handles one optimization but may add support for multi
                 print('PlogReaction not supported yet, skipping')
             else:
                 print('Unsupported Reaction Type {0},index {1} skipping'.format(self.solution.reaction(i).reaction_type(),i+1))
-
+    #write the new cti file, note original file is always preserved unless its path is given as new_path
+    #also note that _processed.cti will repeatably be rewritten if no new path is specified
     def write_to_file(self,new_path=''):
         if new_path == '':
             new_path=self.cti_path.split(".cti")[0]+"_processed.cti"
@@ -118,6 +120,24 @@ class Processor(object): #handles one optimization but may add support for multi
         
         self.cti_path=new_path 
         return new_path
+    #write the active parameter information to file
+    #naming scheme behaves in same way as write_to_file, may add option to do spefiic reactions, not only all
+    def write_parameters_to_file(self,new_path=''):
+        if new_path == '':
+            new_path=self.cti_path.split(".cti")[0]+"_processed.param"
+        f = open(new_path,'w')
+        for r_index in self.active_parameter_dictionary.keys():
+            data = "Reaction {0}:\nType: {1}\ndels: {2}\nh_dels: {3}\nl_dels: {4}\nrate_list: {5}\n".format(
+            self.solution.reaction(r_index + 1),
+            self.active_parameter_dictionary[r_index].r_type,
+            self.active_parameter_dictionary[r_index].dels,
+            self.active_parameter_dictionary[r_index].h_dels,
+            self.active_parameter_dictionary[r_index].l_dels,
+            self.active_parameter_dictionary[r_index].rate_list)
+            f.write(data)
+        self.param_path=new_path
+        return new_path
+
     #expects a list of integers representing reaction indices to remove
     #Cantera as of 2.3 does not have a native remove reaction function
     #assumes input indices are from 1 to n, then subs for cantera to do 0 to n-1

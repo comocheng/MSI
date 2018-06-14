@@ -78,7 +78,6 @@ l_dels: []
 ```
 Example: active parameter setting with processor initialization in a python prompt
 ``` Python
-``` Bash
 Python 3.6.5 |Anaconda, Inc.| (default, Apr 29 2018, 16:14:56) 
 [GCC 7.2.0] on linux
 Type "help", "copyright", "credits" or "license" for more information.
@@ -101,3 +100,24 @@ l_dels: []
 >>> exit()
 ```
 
+Example: writing active parameters to file in a python prompt:
+``` Python
+Python 3.6.5 |Anaconda, Inc.| (default, Apr 29 2018, 16:14:56) 
+[GCC 7.2.0] on linux
+Type "help", "copyright", "credits" or "license" for more information.
+>>> from MSI.cti_core import cti_processor
+>>> test = cti_processor.Processor('MSI/data/test_data/FFCM1.cti',1)
+>>> test.add_active_parameter(1,'ElementaryReaction',dels=[.6,.6,.6])
+True
+>>> test.write_parameters_to_file()
+'MSI/data/test_data/FFCM1_processed.param'
+>>> exit()
+```
+Data is formatted like this:
+```
+Reaction H + O2 <=> O + OH:                                                     
+Type: ElementaryReaction  
+dels: [0.0, 0.0, 0.0]     
+h_dels: []
+l_dels: []
+```
