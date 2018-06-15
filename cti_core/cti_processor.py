@@ -55,7 +55,7 @@ class Processor(object): #handles one optimization but may add support for multi
             return False
         if r_type=='':
             if isinstance(self.solution.reaction(r_index-1),ct._cantera.ThreeBodyReaction):
-                r_type='ElementaryReaction'
+                r_type='ThreeBodyReaction'
             elif isinstance(self.solution.reaction(r_index-1),ct._cantera.FalloffReaction):
                 r_type='FalloffReaction'
             elif isinstance(self.solution.reaction(r_index-1),ct._cantera.PlogReaction):
@@ -142,13 +142,13 @@ class Processor(object): #handles one optimization but may add support for multi
     #sets default parameters for all reactions in solution according to corropsonding r type
     def set_default_parameters(self):
         for i in range(1, self.solution.n_reactions):
-            if isinstance(self.solution.reaction(i),ct._cantera.ThreeBodyReaction):
+            if isinstance(self.solution.reaction(i-1),ct._cantera.ThreeBodyReaction):
                 self.add_active_parameter(r_index = i,r_type = 'ThreeBodyReaction',dels=[0.0,0.0,0.0])
-            elif isinstance(self.solution.reaction(i),ct._cantera.FalloffReaction):
+            elif isinstance(self.solution.reaction(i-1),ct._cantera.FalloffReaction):
                 self.add_active_parameter(r_index = i,r_type = 'FalloffReaction',h_dels=[0.0,0.0,0.0],l_dels=[0.0,0.0,0.0])
-            elif isinstance(self.solution.reaction(i),ct._cantera.PlogReaction):
+            elif isinstance(self.solution.reaction(i-1),ct._cantera.PlogReaction):
                 print('PlogReaction not supported yet, skipping')
-            elif isinstance(self.solution.reaction(i),ct._cantera.ElementaryReaction):
+            elif isinstance(self.solution.reaction(i-1),ct._cantera.ElementaryReaction):
                 self.add_active_parameter(r_index = i,r_type = 'ElementaryReaction',dels=[0.0,0.0,0.0])
             else:
                 print('Unsupported Reaction Type {0},index {1}, skipping'.format(self.solution.reaction(i).reaction_type(),i+1))
