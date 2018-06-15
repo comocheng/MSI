@@ -16,7 +16,7 @@ class Processor(object): #handles one optimization but may add support for multi
         self.param_path = ''#may give option to load in a param file
         if p_flag == 1:
             self.set_default_parameters()
-    #v flag for verbose output, may add out for A=, n= , Ea = etc later, and rate list for plog support
+    #v flag for verbose output, may add out for A=, n= , Ea = etc later, and rate list for plog support, flag for outputting all later
     def get_active_parameter(self,r_index, verbose=0):
         if len(self.active_parameter_dictionary) == 0:
             print("Error: active parameter dictionary empty. Please initialize or add a parameter to the dictionary")
@@ -41,6 +41,8 @@ class Processor(object): #handles one optimization but may add support for multi
         return self.active_parameter_dictionary[r_index-1]
     
     #processor maintains the activate parameters, they are not manipulated in this class
+    #index param from 1 to n, makes it easier for user since cti file does 1 to n
+    #returns true on successful parameter, false on a failed parameter
     def add_active_parameter(self, r_index=-1,r_type='',dels=[], h_dels=[], l_dels=[],rate_list=[]):
 
         #checks so can't screw up input ie not give needed dels for a particular reaction type
@@ -51,10 +53,26 @@ class Processor(object): #handles one optimization but may add support for multi
         if r_index < 1 or r_index > self.solution.n_reactions:
             print("Error: index out of bounds")
             return False
+        if r_type=='':
+            if isinstance(self.solution.reaction(r_index-1),ct._cantera.ThreeBodyReaction):
+                r_type='ElementaryReaction'
+            elif isinstance(self.solution.reaction(r_index-1),ct._cantera.FalloffReaction):
+                r_type='FalloffReaction'
+            elif isinstance(self.solution.reaction(r_index-1),ct._cantera.PlogReaction):
+                print('PlogReaction not supported yet, skipping')
+                return False
+            elif isinstance(self.solution.reaction(r_index-1),ct._cantera.ElementaryReaction):
+                r_type='ElementaryReaction'
+
         if r_type not in self.valid_reactions:
             print('Error: Non supported reaction type {0}'.format(r_type))
             print('Valid Reaction Types:', self.valid_reactions)
-        if r_type=='ElementaryReaction' or r_type == 'ThreeBodyReaction':
+            return False
+        
+        if r_type == 'ThreeBodyReaction':
+            if not isinstance(self.solution.reaction(r_index-1),ct._cantera.ThreeBodyReaction):
+                print('Error: given reaction type {0} does not match the reaction {1}'.format(r_type,self.solution.reaction(r_index-1)))
+                return False
             if len(h_dels)!=0 or len(l_dels)!=0 or len(rate_list)!=0:
                 print('Error: Invalid parameter given, {0}  only takes the dels list'.format(r_type))
                 return False
@@ -68,7 +86,10 @@ class Processor(object): #handles one optimization but may add support for multi
                 if not isinstance(x,float):
                     print('Error: {0} is not a float, all del vals must be floats'.format(x))
                     return False
-        if r_type=='FalloffReaction':
+        elif r_type=='FalloffReaction':
+            if not isinstance(self.solution.reaction(r_index-1),ct._cantera.FalloffReaction):
+                print('Error: given reaction type {0} does not match the reaction {1}'.format(r_type,self.solution.reaction(r_index-1)))
+                return False
             if len(dels)!=0 or len(rate_list)!=0:
                 print('Error: Invalid parameter given, {0}  only takes the h_dels and l_dels '.format(r_type))
                 return False
@@ -84,6 +105,23 @@ class Processor(object): #handles one optimization but may add support for multi
             if len(l_dels) != 3:
                 print('Error: l_dels takes 3 arguments: A,n,Ea')
                 return False
+        elif r_type=='ElementaryReaction':
+            if not isinstance(self.solution.reaction(r_index-1),ct._cantera.ElementaryReaction):
+                print('Error: given reaction type {0} does not match the reaction {1}'.format(r_type,self.solution.reaction(r_index-1)))
+                return False
+            if len(h_dels)!=0 or len(l_dels)!=0 or len(rate_list)!=0:
+                print('Error: Invalid parameter given, {0}  only takes the dels list'.format(r_type))
+                return False
+            if len(dels) == 0:
+                print('Error: dels cannot be empty for generating ElementaryReaction parameter')
+                return False
+            if len(dels) != 3:
+                print('Error: dels takes 3 arguments: A,n,Ea')
+                return False
+            for x in dels:
+                if not isinstance(x,float):
+                    print('Error: {0} is not a float, all del vals must be floats'.format(x))
+                    return False
 
             for x,y in zip(h_dels,l_dels):
                 if not isinstance(x,float):
@@ -104,16 +142,16 @@ class Processor(object): #handles one optimization but may add support for multi
     #sets default parameters for all reactions in solution according to corropsonding r type
     def set_default_parameters(self):
         for i in range(1, self.solution.n_reactions):
-            if isinstance(self.solution.reaction(i),ct._cantera.ElementaryReaction):
-                self.add_active_parameter(r_index = i,r_type = 'ElementaryReaction',dels=[0.0,0.0,0.0])
-            elif isinstance(self.solution.reaction(i),ct._cantera.ThreeBodyReaction):
+            if isinstance(self.solution.reaction(i),ct._cantera.ThreeBodyReaction):
                 self.add_active_parameter(r_index = i,r_type = 'ThreeBodyReaction',dels=[0.0,0.0,0.0])
             elif isinstance(self.solution.reaction(i),ct._cantera.FalloffReaction):
                 self.add_active_parameter(r_index = i,r_type = 'FalloffReaction',h_dels=[0.0,0.0,0.0],l_dels=[0.0,0.0,0.0])
             elif isinstance(self.solution.reaction(i),ct._cantera.PlogReaction):
                 print('PlogReaction not supported yet, skipping')
+            elif isinstance(self.solution.reaction(i),ct._cantera.ElementaryReaction):
+                self.add_active_parameter(r_index = i,r_type = 'ElementaryReaction',dels=[0.0,0.0,0.0])
             else:
-                print('Unsupported Reaction Type {0},index {1} skipping'.format(self.solution.reaction(i).reaction_type(),i+1))
+                print('Unsupported Reaction Type {0},index {1}, skipping'.format(self.solution.reaction(i).reaction_type(),i+1))
     #write the new cti file, note original file is always preserved unless its path is given as new_path
     #also note that _processed.cti will repeatably be rewritten if no new path is specified
     def write_to_file(self,new_path=''):
@@ -126,20 +164,33 @@ class Processor(object): #handles one optimization but may add support for multi
         self.cti_path=new_path 
         return new_path
     #write the active parameter information to file
-    #naming scheme behaves in same way as write_to_file, may add option to do spefiic reactions, not only all
+    #naming scheme behaves in same way as write_to_file, may add option to do spefiic reactions later, not only all
     def write_parameters_to_file(self,new_path=''):
         if new_path == '':
             new_path=self.cti_path.split(".cti")[0]+"_processed.param"
         f = open(new_path,'w')
         for r_index in self.active_parameter_dictionary.keys():
-            data = "Reaction {6}: {0}:\nType: {1}\ndels: {2}\nh_dels: {3}\nl_dels: {4}\nrate_list: {5}\n".format(
-            self.solution.reaction(r_index),
-            self.active_parameter_dictionary[r_index].r_type,
-            self.active_parameter_dictionary[r_index].dels,
-            self.active_parameter_dictionary[r_index].h_dels,
-            self.active_parameter_dictionary[r_index].l_dels,
-            self.active_parameter_dictionary[r_index].rate_list,
-            r_index+1)
+            data = ''
+            react_type = self.active_parameter_dictionary[r_index].r_type
+            if react_type=='ElementaryReaction' or react_type=='ThreeBodyReaction':
+                data = "Reaction {3}: {0}\nType: {1}\ndels: {2}\n".format(
+                self.solution.reaction(r_index),
+                react_type,
+                self.active_parameter_dictionary[r_index].dels,
+                r_index+1)
+            elif self.active_parameter_dictionary[r_index].r_type=='FalloffReaction':
+                data = "Reaction {4}: {0}\nType: {1}\nh_dels: {2}\nl_dels: {3}\n".format(
+                self.solution.reaction(r_index),
+                react_type,
+                self.active_parameter_dictionary[r_index].h_dels,
+                self.active_parameter_dictionary[r_index].l_dels,
+                r_index+1)
+            elif react_type=='PlogReaction':
+                data = "Reaction {3}: {0}\nType: {1}\nrate_list: {2}\n".format(
+                self.solution.reaction(r_index),
+                react_type,
+                'Not Currently Supported',
+                r_index+1)
             f.write(data)
         self.param_path=new_path
         return new_path
@@ -153,12 +204,14 @@ class Processor(object): #handles one optimization but may add support for multi
         for i in to_remove:
             if not isinstance(i,int):
                 print("{0} not an integer, will not be removed".format(i))
+            elif i<1 or i> self.solution.n_reactions:
+                print('Error: index {0} out of bounds, skipping'.format(i))
             else:
                 print("remove index {0}, reaction {1}".format(i,self.solution.reaction(i-1)))
 
         for i in range(0,self.solution.n_reactions):
             if i not in to_remove:
-                clean_reactions.append(self.solution.reaction(i))
+                clean_reactions.append(self.solution.reaction(i-1))
                   
         self.solution = ct.Solution(thermo='IdealGas',
                                     kinetics='GasKinetics',
