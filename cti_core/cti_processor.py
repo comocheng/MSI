@@ -1,3 +1,4 @@
+import re
 import cantera as ct
 from . import soln2cti
 #class holding different methods of processing cti files
@@ -154,7 +155,7 @@ class Processor(object): #handles one optimization but may add support for multi
                 print('Unsupported Reaction Type {0},index {1}, skipping'.format(self.solution.reaction(i).reaction_type(),i+1))
     #write the new cti file, note original file is always preserved unless its path is given as new_path
     #also note that _processed.cti will repeatably be rewritten if no new path is specified
-    def write_to_file(self,new_path=''):
+    def write_soln_to_file(self,new_path=''):
         if new_path == '':
             new_path=self.cti_path.split(".cti")[0]+"_processed.cti"
             soln2cti.write(self.solution, new_path)
@@ -165,7 +166,7 @@ class Processor(object): #handles one optimization but may add support for multi
         return new_path
     #write the active parameter information to file
     #naming scheme behaves in same way as write_to_file, may add option to do spefiic reactions later, not only all
-    def write_parameters_to_file(self,new_path=''):
+    def write_active_parameters(self,new_path=''):
         if new_path == '':
             new_path=self.cti_path.split(".cti")[0]+"_processed.param"
         f = open(new_path,'w')
@@ -173,20 +174,20 @@ class Processor(object): #handles one optimization but may add support for multi
             data = ''
             react_type = self.active_parameter_dictionary[r_index].r_type
             if react_type=='ElementaryReaction' or react_type=='ThreeBodyReaction':
-                data = "Reaction {3}: {0}\nType: {1}\ndels: {2}\n".format(
+                data = "Reaction {3}: '{0}'\nType: {1}\ndels: {2}\n".format(
                 self.solution.reaction(r_index),
                 react_type,
                 self.active_parameter_dictionary[r_index].dels,
                 r_index+1)
             elif self.active_parameter_dictionary[r_index].r_type=='FalloffReaction':
-                data = "Reaction {4}: {0}\nType: {1}\nh_dels: {2}\nl_dels: {3}\n".format(
+                data = "Reaction {4}: '{0}'\nType: {1}\nh_dels: {2}\nl_dels: {3}\n".format(
                 self.solution.reaction(r_index),
                 react_type,
                 self.active_parameter_dictionary[r_index].h_dels,
                 self.active_parameter_dictionary[r_index].l_dels,
                 r_index+1)
             elif react_type=='PlogReaction':
-                data = "Reaction {3}: {0}\nType: {1}\nrate_list: {2}\n".format(
+                data = "Reaction {3}: '{0}'\nType: {1}\nrate_list: {2}\n".format(
                 self.solution.reaction(r_index),
                 react_type,
                 'Not Currently Supported',
@@ -194,6 +195,132 @@ class Processor(object): #handles one optimization but may add support for multi
             f.write(data)
         self.param_path=new_path
         return new_path
+    
+    #parse token for reading active parameter from file
+    # all valid tokens are two element lists
+    def parse_token(self,token:list, empty_param, r_index:int, line_no):
+        if len(token)!=2:
+            print('Error: Parsing file gave wrong number of tokens at line {0}'.format(line_no+1))
+            return False,empty_param,r_index
+        if 'Reaction' in token[0]:
+            if empty_param != None:
+                if not self.add_active_parameter(r_index,empty_param.r_type,empty_param.dels,empty_param.h_dels,empty_param.l_dels,empty_param.rate_list):
+                    print('Error: New parameter reached but previous parameter failed at line {0}'.format(line_no+1))
+                    return False,empty_param,r_index
+                else:
+                    return True,active_parameter(),int(token[0].split(' ')[1])
+            else:
+                empty_param = active_parameter()
+                r_index = int(token[0].split(' ')[1])
+                return True,empty_param,r_index
+        elif 'Type' in token[0] and empty_param==None:
+            print('Error: Expected Reaction index but read type instead at line {0}'.format(line_no+1))
+            return False,empty_param,r_index
+        elif 'Type' in token[0] and empty_param.r_type!='':
+            print('Error: Reaction type defined but was given again at line {0}'.format(line_no+1))
+            return False,empty_param,r_index
+        elif 'Type' in token[0] and empty_param.r_type=='':
+            empty_param.r_type = token[1][1: ].strip()
+            return True,empty_param,r_index
+        elif 'h_dels' in token[0]:
+            if empty_param.r_type != 'FalloffReaction':
+                print('Error: h_dels invalid for reaction type {0} at line {1}'.format(emtpy_param.r_type,line_no+1))
+                return False,empty_param,r_index
+            elif empty_param.h_dels != []:
+                print('Error: h_dels already filled but h_dels given at line {0}'.format(line_no+1))
+                return False,empty_param,r_index
+            else:
+                list_to_parse = re.sub('[\[\]]','',token[1][1: ]).split(',')
+                if len(list_to_parse)!=3:
+                    print('Error: failed to split list {0}'.format(token[1]))
+                    return False
+
+                try:
+                    empty_param.h_dels.append(float(list_to_parse[0]))
+                    empty_param.h_dels.append(float(list_to_parse[1]))
+                    empty_param.h_del.append(float(list_to_parse[2]))
+                    return True,empty_param,r_index
+                except ValueError as e:
+                    print("Error: {0}".format(e))
+                    return False,empty_param,r_index
+        elif 'l_dels' in token[0]:
+            if empty_param.r_type != 'FalloffReaction':
+                print('Error: l_dels invalid for reaction type {0} at line {1}'.format(emtpy_param.r_type,line_no+1))
+                return False,empty_param,r_index
+            elif empty_param.h_dels != []:
+                print('Error: l_dels already filled but l_dels given at line {0}'.format(line_no+1))
+                return False,empty_param,r_index
+            else:
+                list_to_parse = re.sub('[\[\]]','',token[1][1: ]).split(',')
+                if len(list_to_parse)!=3:
+                    print('Error: failed to split list {0}'.format(token[1]))
+                    return False
+
+                try:
+                    empty_param.l_dels.append(float(list_to_parse[0]))
+                    empty_param.l_dels.append(float(list_to_parse[1]))
+                    empty_param.l_dels.append(float(list_to_parse[2]))
+                    return True,empty_param,r_index
+                except ValueError as e:
+                    print("Error: {0}".format(e))
+                    return False,empty_param,r_index
+        elif 'dels' in token[0] and (empty_param.r_type!='ElementaryReaction' and empty_param.r_type!='ThreeBodyReaction'):
+            print('Error: dels is invalid for reaction type {0} at line {1}'.format(empty_param.r_type, line_no+1))
+            return False,empty_param,r_index
+        elif 'dels' in token[0]:
+            if empty_param.dels != []:
+                print('Error: dels already filled but dels given at line {0}'.format(line_no+1))
+                print('dels = {0}'.format(empty_param.dels))
+                return False,empty_param,r_index
+            else:
+                list_to_parse = re.sub('[\[\]]','',token[1][1: ]).split(',')
+                if len(list_to_parse)!=3:
+                    print('Error: failed to split list {0}'.format(token[1]))
+                    return False
+                try:
+                    empty_param.dels.append(float(list_to_parse[0]))
+                    empty_param.dels.append(float(list_to_parse[1]))
+                    empty_param.dels.append(float(list_to_parse[2]))
+                    return True,empty_param,r_index
+                except ValueError as e:
+                    print("Error: {0}".format(e))
+                    return False,empty_param,r_index
+        elif 'rate_list' in token[0]:
+            if empty_param.r_type == 'PlogReaction':
+                print('PlogReaction not currently supported, skipping')
+                return True,empty_param,r_index
+            else:
+                print('Error: invalid reaction type {0} for rate_list at line {1}'.format(empty_param.r_type,line_no+1))
+                return False,empty_param,r_index
+        else:
+            print('Error: invalid token {0} at line {1}'.format(token,i))
+            return False,empty_param,r_index
+
+    #read active parameters from file into the active parameter dict, will fail if no path is given
+    def read_active_parameters(self, path=''):
+        if path=='':
+            print("Error: please specify a path")
+            return -1
+
+        try:
+            f = open(path,'r')
+            empty_param = None
+            r_index = -1
+            for i,line in enumerate(f):
+                token = line.split(':')
+                result = self.parse_token(token,empty_param,r_index,i)
+                if result[0]==False:
+                    f.close()
+                    print('Error at Line {0}: {1}'.format(i,line))
+                    return -1
+                else:
+                    empty_param=result[1]
+                    r_index = result[2]
+            f.close()
+            return True
+        except IOError as e:
+             print("Error: {0}".format(e))
+             return -1
 
     #expects a list of integers representing reaction indices to remove
     #Cantera as of 2.3 does not have a native remove reaction function
