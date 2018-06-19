@@ -198,7 +198,7 @@ class Processor(object): #handles one optimization but may add support for multi
     
     #parse token for reading active parameter from file
     # all valid tokens are two element lists
-    def parse_token(self,token:list, empty_param, r_index:int, line_no):
+    def parse_token(self,token:list, empty_param, r_index:int, line_no:int):
         if len(token)!=2:
             print('Error: Parsing file gave wrong number of tokens at line {0}'.format(line_no+1))
             return False,empty_param,r_index
@@ -311,7 +311,7 @@ class Processor(object): #handles one optimization but may add support for multi
                 result = self.parse_token(token,empty_param,r_index,i)
                 if result[0]==False:
                     f.close()
-                    print('Error at Line {0}: {1}'.format(i,line))
+                    print('Error at Line {0}: {1}'.format(i+1,line.strip()))
                     return -1
                 else:
                     empty_param=result[1]
