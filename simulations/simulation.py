@@ -1,7 +1,9 @@
+from ..cti_core import cti_processor as ctp
 
-class simulations(object):
+class Simulation(object):
     pasc_to_atm = 101325
-    def __init__(self,ctiFile,pressure,temperature,observables,kineticSens,physicalSens):
+    def __init__(self,pressure:float,temperature:float,observables:list,kineticSens:int,physicalSens:int
+            ,conditions:dict,processor:ctp.Processor):
         '''
         Input:
             - pressure = float, pressure in [atm]
@@ -11,23 +13,23 @@ class simulations(object):
             - physicalSens = integer, 0 for off, 1 for on 
             
         '''
-        self.ctiFile = ctiFile
+        self.processor = processor 
         self.pressure = pressure
         self.temperature = temperature
         self.observables = observables
         self.kineticSens = kineticSens
         self.physicalSens = physicalSens
+        self.conditions = conditions
         
-    def solutionObject(self):
+    def setTPX(self):
         '''
         Set solution object for a simulation
         '''
-        gas = ct.Solution(self.ctiFile)
-        gas.TPX = self.temperature,self.pressure*pasc_to_atm,self.conditions
-        
-        return gas
+        self.processor.solution.TPX=self.temperature,self.pressure*self.pasc_to_atm,self.conditions
     
     #always overwritten since each simulation is very different
+    #returns a tuple of initial and finaltime instead
     #possible do have a main loop, but call run in this loop?
     def run(self, initialTime, finalTime):
+        print("Error: Simulation class itself does not implement the run method, please run a child class")
         return (initialTime,finalTime)
