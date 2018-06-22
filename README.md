@@ -41,7 +41,7 @@ remove index 3, reaction H2 + M <=> 2 H + M
 remove index 1, reaction H + O2 <=> O + OH
 remove index 4, reaction H2 + HE <=> 2 H + HE
 remove index 77, reaction CH2(S) + H2O2 <=> CH3O + OH
->>> test_processor.write_to_file()
+>>> test_processor.write_soln_to_file()
 './MSI/data/test_data/FFCM1_processed.cti'
 >>> exit()
 ```
@@ -109,15 +109,19 @@ Type "help", "copyright", "credits" or "license" for more information.
 >>> test = cti_processor.Processor('MSI/data/test_data/FFCM1.cti',1)
 >>> test.add_active_parameter(1,'ElementaryReaction',dels=[.6,.6,.6])
 True
->>> test.write_parameters_to_file()
+>>> test.write_parameters()
 'MSI/data/test_data/FFCM1_processed.param'
 >>> exit()
 ```
 Data is formatted like this:
 ```
-Reaction 1: H + O2 <=> O + OH:                                                     
-Type: ElementaryReaction  
-dels: [0.0, 0.0, 0.0]     
-h_dels: []
-l_dels: []
+Type: ThreeBodyReaction
+dels: [0.0, 0.0, 0.0]
+Reaction 14: '2 H2O <=> H + H2O + OH'
+Type: ElementaryReaction
+dels: [0.0, 0.0, 0.0]
+Reaction 15: 'H + O2 (+M) <=> HO2 (+M)'
+Type: FalloffReaction
+h_dels: [0.0, 0.0, 0.0]
+l_dels: [0.0, 0.0, 0.0]
 ```
