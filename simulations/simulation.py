@@ -28,8 +28,5 @@ class Simulation(object):
         self.processor.solution.TPX=self.temperature,self.pressure*self.pasc_to_atm,self.conditions
     
     #always overwritten since each simulation is very different
-    #returns a tuple of initial and finaltime instead
-    #possible do have a main loop, but call run in this loop?
-    def run(self, initialTime, finalTime):
+    def run(self):
         print("Error: Simulation class itself does not implement the run method, please run a child class")
-        return (initialTime,finalTime)
