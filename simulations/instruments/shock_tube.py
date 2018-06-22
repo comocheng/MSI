@@ -24,7 +24,7 @@ class shockTube(sim.Simulation):
             - mechanicalBoundary = string, the thermal boundary condition for
               the shocktube. For example, constant pressure or constant volume
         '''
-        sim.Simulation.__init__(pressure,temperature,observables,kineticSens,physicalSens,
+        sim.Simulation.__init__(self,pressure,temperature,observables,kineticSens,physicalSens,
                                 conditions,processor)
         self.initialTime = initialTime
         self.finalTime = finalTime
@@ -94,10 +94,9 @@ class shockTube(sim.Simulation):
                                shockTube.T, shockTube.thermo.X])
             self.timeHistory.loc[counter] = state
             if self.kineticSens == 1:
-                self.handleSens()
                 counter_1 = 0
                 for observable,reaction in itertools.product(self.observables, range(self.processor.solution.n_reactions)):
-                    tempArray[self.observables.index(self.observables)][reaction] = sim.sensitivity(self.observables,
+                    tempArray[self.observables.index(observable)][reaction] = sim.sensitivity(self.observables,
                                                                                                     reaction)
                     counter_1 +=1
                     if counter_1 % self.processor.solution.n_reactions == 0:
@@ -107,7 +106,7 @@ class shockTube(sim.Simulation):
 
 
         if self.kineticSens == 1:
-            numpyMatrixsksens = [dfs[dataframe].as_matrix() for dataframe in xrange(len(dfs))]
+            numpyMatrixsksens = [dfs[dataframe].as_matrix() for dataframe in range(len(dfs))]
             self.kineticSens = np.dstack(numpyMatrixsksens)
             return self.timeHistory,self.kineticSens
         else:
