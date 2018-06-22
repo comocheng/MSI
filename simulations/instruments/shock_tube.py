@@ -103,7 +103,7 @@ class shockTube(sim.Simulation):
                         dfs[self.observables.index(observable)] = dfs[self.observables.index(observable)].append(((
                             pd.DataFrame(tempArray[self.observables.index(observable)])).transpose()),
                             ignore_index=True)
-
+            counter+=1
 
         if self.kineticSens == 1:
             numpyMatrixsksens = [dfs[dataframe].as_matrix() for dataframe in range(len(dfs))]
