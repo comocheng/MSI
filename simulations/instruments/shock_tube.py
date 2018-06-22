@@ -7,7 +7,8 @@ from .. import simulation as sim
 
 class shockTube(sim.Simulation):
     
-    def __init__(self,initialTime,finalTime,thermalBoundary,mechanicalBoundary):
+    def __init__(self,pressure:float,temperature:float,observables:list,kineticSens:int,physicalSens:int
+            ,conditions:dict,processor:ctp.Processor,initialTime,finalTime,thermalBoundary,mechanicalBoundary):
 
         '''
         Child class of shock Tubes. Inherits all attributes and
@@ -22,6 +23,8 @@ class shockTube(sim.Simulation):
             - mechanicalBoundary = string, the thermal boundary condition for
               the shocktube. For example, constant pressure or constant volume
         '''
+        sim.Simulation.__init__(pressure,temperature,observables,kineticSens,physicalSens
+            ,conditions,processor)
         self.initialTime = initialTime
         self.finalTime = finalTime
         self.thermalBoundary = thermalBoundary
