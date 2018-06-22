@@ -104,7 +104,7 @@ class shockTube(sim.Simulation):
             if self.kineticSens == 1:
                 counter_1 = 0
                 for observable,reaction in itertools.product(self.observables, range(self.processor.solution.n_reactions)):
-                    tempArray[self.observables.index(observable)][reaction] = sim.sensitivity(self.observables,
+                    tempArray[self.observables.index(observable)][reaction] = sim.sensitivity(observable,
                                                                                                     reaction)
                     counter_1 +=1
                     if counter_1 % self.processor.solution.n_reactions == 0:
