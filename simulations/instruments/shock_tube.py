@@ -4,6 +4,7 @@ import cantera as ct
 import pandas as pd
 import re
 from .. import simulation as sim
+from ...cti_core import cti_processor as ctp
 
 class shockTube(sim.Simulation):
     
@@ -23,8 +24,8 @@ class shockTube(sim.Simulation):
             - mechanicalBoundary = string, the thermal boundary condition for
               the shocktube. For example, constant pressure or constant volume
         '''
-        sim.Simulation.__init__(pressure,temperature,observables,kineticSens,physicalSens
-            ,conditions,processor)
+        sim.Simulation.__init__(pressure,temperature,observables,kineticSens,physicalSens,
+                                conditions,processor)
         self.initialTime = initialTime
         self.finalTime = finalTime
         self.thermalBoundary = thermalBoundary
