@@ -30,8 +30,16 @@ class shockTube(sim.Simulation):
         self.finalTime = finalTime
         self.thermalBoundary = thermalBoundary
         self.mechanicalBoundary = mechanicalBoundary
-        self.sensitivites = None
+        self.kineticSensitivities= None
         self.timeHistory = None
+        self.setTPX()
+    def printVars(self):
+        print('initial time: {0}\nfinal time: {1}\n'.format(self.initialTime,self.finalTime),
+              '\nthermalBoundary: {0}\nmechanicalBoundary: {1}'.format(self.thermalBoundary,self.mechanicalBoundary),
+              '\npressure: {0}\ntemperature: {1}\nobservables: {2}'.format(self.pressure,self.temperature,self.observables),
+              '\nkineticSens: {0}\nphysicalSens: {1}'.format(self.kineticSens,self.physicalSens),
+              '\nTPX: {0}'.format(self.processor.solution.TPX)
+              )
     def settingShockTubeConditions(self):
         '''
         Determine the mechanical and thermal boundary conditions for a 
@@ -55,14 +63,14 @@ class shockTube(sim.Simulation):
         #return the thermal and mechanical boundary of the shock tube 
         return energy,mechBoundary
     
-    def run(initialTime:float=-1.0, finalTime:float=-1.0):
+    def run(self,initialTime:float=-1.0, finalTime:float=-1.0):
         if initialTime == -1.0:
             initialTime = self.initialTime 
         if finalTime == -1.0:
             finalTime = self.finalTime
         self.timeHistory = None
-        self.sensitivites = None
-        conditions = self.settingShockTubeCondition()
+        self.kineticSensitivities= None
+        conditions = self.settingShockTubeConditions()
         mechanicalBoundary = conditions[1]
         
         #same solution for both cp and cv sims
@@ -78,13 +86,13 @@ class shockTube(sim.Simulation):
 
         columnNames = [shockTube.component_name(item) for item in range(shockTube.n_vars)]
         columnNames = ['time']+['pressure']+columnNames
-        timehistory = pd.DataFrame(columns=columnNames)
+        self.timeHistory = pd.DataFrame(columns=columnNames)
 
         if self.kineticSens == 1:
             for i in range(self.processor.solution.n_reactions):
                 shockTube.add_sensitivity_reaction(i)
             dfs = [pd.DataFrame() for x in range(len(self.observables))]
-            tempArray = [np.zeros(gas.n_reactions) for x in range(len(self.observables))]
+            tempArray = [np.zeros(self.processor.solution.n_reactions) for x in range(len(self.observables))]
 
         t = self.initialTime
         counter = 0
@@ -106,8 +114,8 @@ class shockTube(sim.Simulation):
             counter+=1
 
         if self.kineticSens == 1:
-            numpyMatrixsksens = [dfs[dataframe].as_matrix() for dataframe in range(len(dfs))]
-            self.kineticSens = np.dstack(numpyMatrixsksens)
-            return self.timeHistory,self.kineticSens
+            numpyMatrixsksens = [dfs[dataframe].values for dataframe in range(len(dfs))]
+            self.kineticSensitivities = np.dstack(numpyMatrixsksens)
+            return self.timeHistory,self.kineticSensitivities
         else:
             return self.timeHistory
