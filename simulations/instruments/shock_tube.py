@@ -9,7 +9,8 @@ from ...cti_core import cti_processor as ctp
 class shockTube(sim.Simulation):
     
     def __init__(self,pressure:float,temperature:float,observables:list,kineticSens:int,physicalSens:int
-            ,conditions:dict,processor:ctp.Processor,initialTime,finalTime,thermalBoundary,mechanicalBoundary):
+            ,conditions:dict,initialTime,finalTime,thermalBoundary,mechanicalBoundary,processor:ctp.Processor=None,
+            cti_path=""):
 
         '''
         Child class of shock Tubes. Inherits all attributes and
@@ -25,7 +26,7 @@ class shockTube(sim.Simulation):
               the shocktube. For example, constant pressure or constant volume
         '''
         sim.Simulation.__init__(self,pressure,temperature,observables,kineticSens,physicalSens,
-                                conditions,processor)
+                                conditions,processor,cti_path)
         self.initialTime = initialTime
         self.finalTime = finalTime
         self.thermalBoundary = thermalBoundary
