@@ -41,10 +41,13 @@ class Simulation(object):
         print("Error: Simulation class itself does not implement the run method, please run a child class")
 
 
-'''    def parameterAdjustment(self,parameter,dk=.01):
-        parameter = parameter + dk
-        return parameter
- ######## might be better to combine these into one thing not sure if there is an easy way to do this ??   
+    def sensitivity_adjustment(self,temp_del:float=0.0, pres_del:float=0.0, spec_del:float=0.0):
+        self.temperature+=temp_del
+        self.pressure+=pres_del
+        #self.speciesSensitivty+=spec_del, not this easy
+        return self.run()
+    def 
+ '''######## integrate with active parameter object, use a tag. might be better to combine these into one thing not sure if there is an easy way to do this ??   
     def temperatureSensitivity(self):
         gas = self.solutionObject()
         gas.TPX = self.parameterAdjustment(self.temperature),self.pressure*101325,self.conditions

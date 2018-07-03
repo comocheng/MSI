@@ -1,6 +1,6 @@
 import re
 import cantera as ct
-from . import soln2cti
+from ..utilities import soln2cti
 #class holding different methods of processing cti files
 
 class Processor(object): #handles one optimization but may add support for multiple later
@@ -215,7 +215,7 @@ class Processor(object): #handles one optimization but may add support for multi
                 return True,empty_param,r_index
         elif 'Type' in token[0] and empty_param==None:
             print('Error: Expected Reaction index but read type instead at line {0}'.format(line_no+1))
-            return False,empty_param,r_index
+            return False,empty_param,r_inde#x
         elif 'Type' in token[0] and empty_param.r_type!='':
             print('Error: Reaction type defined but was given again at line {0}'.format(line_no+1))
             return False,empty_param,r_index
@@ -393,4 +393,5 @@ class active_parameter(object):
         self.h_dels      = h_dels
         self.l_dels     = l_dels
         self.rate_list  = rate_list
+    #add the __add__ method
 
