@@ -1,8 +1,7 @@
 import cantera as ct
 import re
 import sys
-sys.path.append('..')
-
+from . import soln2cti
 if len(sys.argv) != 3:
     print("error: must provide single argument for element and argument for cti file path")
 else:
@@ -39,6 +38,5 @@ else:
     #print(clean_species)
     for x in clean_mechanism.reactions():
        print(x,'\n')
-    from cti_core import soln2cti
     print("writing cleaned file at ", cti_path_clean)
     soln2cti.write(clean_mechanism,cti_path_clean)
