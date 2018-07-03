@@ -1,7 +1,7 @@
 import cantera as ct
 import re
 import sys
-from . import soln2cti
+import soln2cti
 if len(sys.argv) != 3:
     print("error: must provide single argument for element and argument for cti file path")
 else:
@@ -15,16 +15,16 @@ else:
     clean_reactions=()
     #loop once over the species
     for i in mechanism_to_clean.species():
-        if not 'C' in i.name:
+        if not element in i.name:
             clean_species+=(i,)
     #loop once over the reactions
     for i in range(0,mechanism_to_clean.n_reactions):
-        if not 'C' in mechanism_to_clean.reaction_equation(i):
+        if not element in mechanism_to_clean.reaction_equation(i):
             reaction = mechanism_to_clean.reaction(i)
             if hasattr(reaction,'efficiencies'):
                 copy = {}
                 for key in reaction.efficiencies.keys():
-                    if not re.search('C',key):
+                    if not re.search(element,key):
                         copy.update({key:reaction.efficiencies[key]})
                 reaction.efficiencies=copy
             clean_reactions+=(mechanism_to_clean.reaction(i),)
