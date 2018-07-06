@@ -40,6 +40,11 @@ class Simulation(object):
             pressure = self.pressure
         if conditions == {}:
             conditions = self.conditions
+        else:
+            conditions_copy = self.conditions
+            for x in conditions.keys():
+                conditions_copy[x] = conditions_copy[x]+conditions[x]
+            conditions = conditions_copy 
         self.processor.solution.TPX=temperature,pressure*self.pasc_to_atm,conditions
     
     #always overwritten since each simulation is very different
@@ -47,29 +52,24 @@ class Simulation(object):
         print("Error: Simulation class itself does not implement the run method, please run a child class")
 
 
-    def sensitivity_adjustment(self,temp_del:float=0.0, pres_del:float=0.0, spec_del:float=0.0):
-        self.setTPX(self.temperature+temp_del,self.pressure+pres_del)
+    def sensitivity_adjustment(self,temp_del:float=0.0, pres_del:float=0.0, spec_del:(str,float)=('',0.0)):
+        self.setTPX(self.temperature+temp_del,
+                    self.pressure+pres_del,
+                    {spec_del[0]:spec_del[1]})
         #self.speciesSensitivty+=spec_del, not this easy
         data = self.run()
         self.setTPX()
         return data
-######## integrate with active parameter object, use a tag. might be better to combine these into one thing not sure if there is an easy way to do this ??   
-'''    def temperatureSensitivity(self):
-        gas = self.solutionObject()
-        gas.TPX = self.parameterAdjustment(self.temperature),self.pressure*101325,self.conditions
-        ## want to re-run shock tube simulation without the kinetic sensitivity being run 
-        timeHistory = self.shockTubeSimulation()
-        return timeHistory
     
-    def pressureSensitivity(self):
-        gas = self.solutionObject()
-        ####dont' wnat to reanitalize this ??
-        gas.TPX = self.temperature,self.parameterAdjustment(self.pressure)*101325,self.conditions
-        ## want to re-run shock tube simulation without the kinetic sensitivity being run 
-        timeHistory = self.shockTubeSimulation()
-        return timeHistory
-    
-    def speciesSensitivty(self):
+
+    inert_species=['Ar','AR','HE','He','Kr','KR','Xe','XE','NE','Ne']
+    def species_adjustment(self,spec_dels={}):
+        for x in self.conditions.keys():
+            if x not in inert_species:
+                sensitivity_adjustment(spec_del=(x,spec_dels[x]))
+
+'''    #integrate with sens adjustment 
+    def species_adjustment(spec_del={}):
         gas = self.solutionObject()
         ar = []
         for x in np.nditer(gas.TPX[2]):
