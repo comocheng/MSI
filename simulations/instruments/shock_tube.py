@@ -67,7 +67,7 @@ class shockTube(sim.Simulation):
     def sensitivity_adjustment(self,temp_del:float=0.0, pres_del:float=0.0, spec_del:float=0.0):
         kin_temp = self.kineticSens
         self.kineticSens = 0
-        data = super(temp_del,pres_del,spec_del)
+        data = sim.Simulation.sensitivity_adjustment(self,temp_del,pres_del,spec_del)
         self.kineticSens = kin_temp
         return data
 
