@@ -52,11 +52,18 @@ class Simulation(object):
         print("Error: Simulation class itself does not implement the run method, please run a child class")
 
 
-    def sensitivity_adjustment(self,temp_del:float=0.0, pres_del:float=0.0, spec_del:(str,float)=('',0.0)):
-        self.setTPX(self.temperature+temp_del,
-                    self.pressure+pres_del,
-                    {spec_del[0]:spec_del[1]})
-        #self.speciesSensitivty+=spec_del, not this easy
+    def sensitivity_adjustment(self,temp_del:float=0.0,
+                               pres_del:float=0.0,
+                               spec_pair:(str,float)=('',0.0)):
+
+        if spec_pair[0] != '':
+           self.setTPX(self.temperature+temp_del,
+                   self.pressure+pres_del,
+                   {spec_pair[0]:spec_pair[1]})
+        else:
+           self.setTPX(self.temperature+temp_del,
+                       self.pressure+pres_del)
+        
         data = self.run()
         self.setTPX()
         return data
@@ -67,7 +74,7 @@ class Simulation(object):
                        'Xe','XE','NE','Ne']
         for x in self.conditions.keys():
             if x not in inert_species:
-                sensitivity_adjustment(spec_del=(x,spec_del))
+                self.sensitivity_adjustment(spec_pair=(x,spec_del))
 
 '''    #integrate with sens adjustment 
     def species_adjustment(spec_del={}):

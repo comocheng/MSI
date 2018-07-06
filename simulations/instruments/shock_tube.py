@@ -64,10 +64,12 @@ class shockTube(sim.Simulation):
         #return the thermal and mechanical boundary of the shock tube 
         return energy,mechBoundary
 
-    def sensitivity_adjustment(self,temp_del:float=0.0, pres_del:float=0.0, spec_del:(str,float)=('',0.0)):
+    def sensitivity_adjustment(self,temp_del:float=0.0,
+                               pres_del:float=0.0,
+                               spec_pair:(str,float)=('',0.0)):
         kin_temp = self.kineticSens
         self.kineticSens = 0
-        data = sim.Simulation.sensitivity_adjustment(self,temp_del,pres_del,spec_del)
+        data = sim.Simulation.sensitivity_adjustment(self,temp_del,pres_del,spec_pair)
         self.kineticSens = kin_temp
         return data
 

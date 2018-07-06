@@ -17,7 +17,7 @@ test_tube = st.shockTube(pressure=1.74,
                          thermalBoundary='Adiabatic',
                          mechanicalBoundary='constant pressure',
                          processor=test_p)
-test_tube.run()
+#test_tube.run()
 test_tube.printVars()
 print(test_tube.timeHistory)
 print(test_tube.kineticSensitivities)
