@@ -63,7 +63,14 @@ class shockTube(sim.Simulation):
             raise Exception('Please specifiy a mehcanical boundary condition, constant pressure or constant volume')
         #return the thermal and mechanical boundary of the shock tube 
         return energy,mechBoundary
-    
+
+    def sensitivity_adjustment(self,temp_del:float=0.0, pres_del:float=0.0, spec_del:float=0.0):
+        kin_temp = self.kineticSens
+        self.kineticSens = 0
+        data = super(temp_del,pres_del,spec_del)
+        self.kineticSens = kin_temp
+        return data
+
     def run(self,initialTime:float=-1.0, finalTime:float=-1.0):
         if initialTime == -1.0:
             initialTime = self.initialTime 

@@ -53,7 +53,6 @@ class Simulation(object):
         data = self.run()
         self.setTPX()
         return data
-    def 
  '''######## integrate with active parameter object, use a tag. might be better to combine these into one thing not sure if there is an easy way to do this ??   
     def temperatureSensitivity(self):
         gas = self.solutionObject()
