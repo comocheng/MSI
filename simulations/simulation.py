@@ -30,11 +30,17 @@ class Simulation(object):
         self.physicalSens = physicalSens
         self.conditions = conditions
         
-    def setTPX(self):
+    def setTPX(self,temperature:float=-1,pressure:float=-1,conditions:dict={}):
         '''
         Set solution object for a simulation
         '''
-        self.processor.solution.TPX=self.temperature,self.pressure*self.pasc_to_atm,self.conditions
+        if temperature== -1:
+            temperature = self.temperature
+        if pressure == -1:
+            pressure = self.pressure
+        if conditions == {}:
+            conditions = self.conditions
+        self.processor.solution.TPX=temperature,pressure*self.pasc_to_atm,conditions
     
     #always overwritten since each simulation is very different
     def run(self):
@@ -42,10 +48,11 @@ class Simulation(object):
 
 
     def sensitivity_adjustment(self,temp_del:float=0.0, pres_del:float=0.0, spec_del:float=0.0):
-        self.temperature+=temp_del
-        self.pressure+=pres_del
+        setTPX(self.temperature+temp_del,self.pressure+pres_del)
         #self.speciesSensitivty+=spec_del, not this easy
-        return self.run()
+        data = self.run()
+        self.setTPX()
+        return data
     def 
  '''######## integrate with active parameter object, use a tag. might be better to combine these into one thing not sure if there is an easy way to do this ??   
     def temperatureSensitivity(self):
