@@ -48,7 +48,7 @@ class Simulation(object):
 
 
     def sensitivity_adjustment(self,temp_del:float=0.0, pres_del:float=0.0, spec_del:float=0.0):
-        setTPX(self.temperature+temp_del,self.pressure+pres_del)
+        self.setTPX(self.temperature+temp_del,self.pressure+pres_del)
         #self.speciesSensitivty+=spec_del, not this easy
         data = self.run()
         self.setTPX()
