@@ -43,7 +43,8 @@ class Simulation(object):
         else:
             conditions_copy = self.conditions
             for x in conditions.keys():
-                conditions_copy[x] = conditions_copy[x]+conditions[x]
+                if x != '':
+                    conditions_copy[x] = conditions_copy[x]+conditions[x]
             conditions = conditions_copy 
         self.processor.solution.TPX=temperature,pressure*self.pasc_to_atm,conditions
     
