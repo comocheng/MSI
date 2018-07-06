@@ -72,9 +72,12 @@ class Simulation(object):
     def species_adjustment(self,spec_del:float=0.0):
         inert_species=['Ar','AR','HE','He','Kr','KR',
                        'Xe','XE','NE','Ne']
+        data = ''
         for x in self.conditions.keys():
             if x not in inert_species:
-                self.sensitivity_adjustment(spec_pair=(x,spec_del))
+                data =  self.sensitivity_adjustment(spec_pair=(x,spec_del))
+
+        return data
 
 '''    #integrate with sens adjustment 
     def species_adjustment(spec_del={}):
