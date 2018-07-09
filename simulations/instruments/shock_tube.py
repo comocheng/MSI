@@ -11,7 +11,7 @@ class shockTube(sim.Simulation):
     
     def __init__(self,pressure:float,temperature:float,observables:list,kineticSens:int,physicalSens:int
             ,conditions:dict,initialTime,finalTime,thermalBoundary,mechanicalBoundary,processor:ctp.Processor=None,
-            cti_path="",histories:int=0, save_calc_phys_sens=0):
+            cti_path="",histories:int=0, save_physSensHistories=0):
 
         '''
         Child class of shock Tubes. Inherits all attributes and
@@ -39,8 +39,8 @@ class shockTube(sim.Simulation):
             self.timeHistories=[]
         else:
             self.timeHistories=None
-        if save_calc_phys_sens == 1:
-            self.calc_phys_sens = []
+        if save_physSensHistories == 1:
+            self.physSensHistories = []
         self.setTPX()
     def printVars(self):
         print('initial time: {0}\nfinal time: {1}\n'.format(self.initialTime,self.finalTime),
@@ -59,22 +59,22 @@ class shockTube(sim.Simulation):
         pickle.dump(self.timeHistories,open(path,'wb'))
         return 0
 
-    def write_calc_phys_sens(self, path=''):
-        if self.calc_phys_sens == None:
+    def write_physSensHistories(self, path=''):
+        if self.physSensHistories == None:
             print("Error: this simulation is not saving time histories, reinitialize with flag")
             return -1
         if path=='':
-            path = './calc_phys_sensitivities.sens'
-            pickle.dump(self.calc_phy_sens,open(path,'wb'))
+            path = './physSensHistoriesitivities.sens'
+            pickle.dump(self.physSensHistories,open(path,'wb'))
         return 0
 
-    def load_calc_phys_sens(self, path=''):
-        if self.calc_phys_sens == None:
+    def load_physSensHistories(self, path=''):
+        if self.physSensHistories == None:
             print("Error: this simulation is not saving time histories, reinitialize with flag")
             return -1
         if path=='':
-            path = './calc_phys_sensitivities.sens'
-        pickle.load(self.calc_phys_sens,open(path,'wb'))
+            path = './physSensHistoriesitivities.sens'
+        pickle.load(self.physSensHistories,open(path,'wb'))
         return 0
 
     #note this is destructive, the original timeHistories are overwritten, run before any runs
@@ -190,8 +190,8 @@ class shockTube(sim.Simulation):
         interpolated_time = self.interpolate_time()
         sensitivity = self.sensitivityCalculation(self.timeHistories[0][self.observables],
                                                   interpolated_time,self.observables)
-        if calc_phys_sens != None:
-            calc_phys_sens.append(sensitivity)
+        if physSensHistories != None:
+            physSensHistories.append(sensitivity)
         return sensitivity
 
     def interpolation(self,originalValues,newValues, thingBeingInterpolated):   
