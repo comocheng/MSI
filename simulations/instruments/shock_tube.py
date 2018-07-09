@@ -190,8 +190,8 @@ class shockTube(sim.Simulation):
         interpolated_time = self.interpolate_time()
         sensitivity = self.sensitivityCalculation(self.timeHistories[0][self.observables],
                                                   interpolated_time,self.observables)
-        if physSensHistories != None:
-            physSensHistories.append(sensitivity)
+        if self.physSensHistories != None:
+            self.physSensHistories.append(sensitivity)
         return sensitivity
 
     def interpolation(self,originalValues,newValues, thingBeingInterpolated):   
