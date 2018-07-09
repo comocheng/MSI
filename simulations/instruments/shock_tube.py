@@ -35,6 +35,7 @@ class shockTube(sim.Simulation):
         self.mechanicalBoundary = mechanicalBoundary
         self.kineticSensitivities= None
         self.timeHistory = None
+        self.experimentalData = None
         if histories == 1:
             self.timeHistories=[]
         else:
@@ -231,3 +232,11 @@ class shockTube(sim.Simulation):
         else:
             print("Error: wrong datatype, both must be pandas data frames")
             return -1
+
+    
+    def importExperimentalData(self,csvFileList):
+        experimentalData = [pd.read_csv(csv) for csv in csvFileList]
+        experimentalData = [experimentalData[x].dropna(how='any') for x in range(len(experimentalData))]
+        experimentalData = [experimentalData[x].apply(pd.to_numeric, errors = 'coerce').dropna() for x in range(len(experimentalData))]
+        self.experimentalData = experimentalData
+        return experimentalData
