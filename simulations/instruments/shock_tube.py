@@ -35,7 +35,7 @@ class shockTube(sim.Simulation):
         self.mechanicalBoundary = mechanicalBoundary
         self.kineticSensitivities= None
         self.timeHistory = None
-        if(histories == 1):
+        if histories == 1:
             self.timeHistories=[]
         else:
             self.timeHistories=None
@@ -50,17 +50,20 @@ class shockTube(sim.Simulation):
     def write_time_histories(self, path=''):
         if self.timeHistories == None:
             print("Error: this simulation is not saving time histories, reinitialize with flag")
+            return -1
         if path=='':
             path = './time_histories.time'
         pickle.dump(self.timeHistories,open(path,'wb'))
+        return 0
     #note this is destructive, the original timeHistories are overwritten, run before any runs
     def load_time_histories(self, path=''):
         if self.timeHistories == None:
             print("Error: this simulation is not saving time histories, reinitialize with flag")
+            return -1
         if path=='':
             path = './time_histories.time'
         pickle.load(self.timeHistories,open(path,'wb'))
-        
+        return 0
     def settingShockTubeConditions(self):
         '''
         Determine the mechanical and thermal boundary conditions for a 
@@ -152,6 +155,13 @@ class shockTube(sim.Simulation):
         else:
             return self.timeHistory
 
+    #interpolate the most recent time history against the oldest
+    def interpolate_time(self):
+        if self.timeHistories == None:
+            print("Error: this simulation is not saving time histories, reinitialize with flag")
+            return -1
+        else:
+            return self.interpolation(self.timeHistories[0],self.timeHistories[-1],self.observables)
 
     def interpolation(self,originalValues,newValues, thingBeingInterpolated):   
         #interpolating time histories to original time history 
