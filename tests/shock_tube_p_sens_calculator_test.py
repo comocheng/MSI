@@ -20,6 +20,6 @@ test_tube = st.shockTube(pressure=1.74,
                          histories=1)
 test_tube.run()
 test_tube.sensitivity_adjustment(temp_del = .01)
-interpolated = test_tube.interpolate_time()
-print(interpolated)
+sensitivity = test_tube.physical_sensitivity_calculator()
+print(sensitivity)
 
