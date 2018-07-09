@@ -60,7 +60,7 @@ class shockTube(sim.Simulation):
         return 0
 
     def write_calc_phys_sens(self, path=''):
-        if self.calc__phys_sens == None:
+        if self.calc_phys_sens == None:
             print("Error: this simulation is not saving time histories, reinitialize with flag")
             return -1
         if path=='':
@@ -188,7 +188,10 @@ class shockTube(sim.Simulation):
     
     def physical_sensitivity_calculator(self):
         interpolated_time = self.interpolate_time()
-        sensitivity = self.sensitivityCalculation(self.timeHistories[0][self.observables],interpolated_time,self.observables)
+        sensitivity = self.sensitivityCalculation(self.timeHistories[0][self.observables],
+                                                  interpolated_time,self.observables)
+        if calc_phys_sens != None:
+            calc_phys_sens.append(sensitivity)
         return sensitivity
 
     def interpolation(self,originalValues,newValues, thingBeingInterpolated):   
