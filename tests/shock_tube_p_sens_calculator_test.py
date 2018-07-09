@@ -17,9 +17,10 @@ test_tube = st.shockTube(pressure=1.74,
                          thermalBoundary='Adiabatic',
                          mechanicalBoundary='constant pressure',
                          processor=test_p,
-                         histories=1)
+                         histories=1,
+                         save_calc_phys_sens=1)
 test_tube.run()
 test_tube.sensitivity_adjustment(temp_del = .01)
 sensitivity = test_tube.physical_sensitivity_calculator()
 print(sensitivity)
-
+test_tube.write_calc_phys_sens()

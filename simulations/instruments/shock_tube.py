@@ -11,7 +11,7 @@ class shockTube(sim.Simulation):
     
     def __init__(self,pressure:float,temperature:float,observables:list,kineticSens:int,physicalSens:int
             ,conditions:dict,initialTime,finalTime,thermalBoundary,mechanicalBoundary,processor:ctp.Processor=None,
-            cti_path="",histories:int=0):
+            cti_path="",histories:int=0, save_calc_phys_sens=0):
 
         '''
         Child class of shock Tubes. Inherits all attributes and
@@ -39,6 +39,8 @@ class shockTube(sim.Simulation):
             self.timeHistories=[]
         else:
             self.timeHistories=None
+        if save_calc_phys_sens == 1:
+            self.calc_phys_sens = []
         self.setTPX()
     def printVars(self):
         print('initial time: {0}\nfinal time: {1}\n'.format(self.initialTime,self.finalTime),
@@ -47,6 +49,7 @@ class shockTube(sim.Simulation):
               '\nkineticSens: {0}\nphysicalSens: {1}'.format(self.kineticSens,self.physicalSens),
               '\nTPX: {0}'.format(self.processor.solution.TPX)
               )
+    #maybe unify paths with cti file?, also really fix the python styling
     def write_time_histories(self, path=''):
         if self.timeHistories == None:
             print("Error: this simulation is not saving time histories, reinitialize with flag")
@@ -55,7 +58,27 @@ class shockTube(sim.Simulation):
             path = './time_histories.time'
         pickle.dump(self.timeHistories,open(path,'wb'))
         return 0
+
+    def write_calc_phys_sens(self, path=''):
+        if self.calc__phys_sens == None:
+            print("Error: this simulation is not saving time histories, reinitialize with flag")
+            return -1
+        if path=='':
+            path = './calc_phys_sensitivities.sens'
+            pickle.dump(self.calc_phy_sens,open(path,'wb'))
+        return 0
+
+    def load_calc_phys_sens(self, path=''):
+        if self.calc_phys_sens == None:
+            print("Error: this simulation is not saving time histories, reinitialize with flag")
+            return -1
+        if path=='':
+            path = './calc_phys_sensitivities.sens'
+        pickle.load(self.calc_phys_sens,open(path,'wb'))
+        return 0
+
     #note this is destructive, the original timeHistories are overwritten, run before any runs
+    #same write is destructive by default
     def load_time_histories(self, path=''):
         if self.timeHistories == None:
             print("Error: this simulation is not saving time histories, reinitialize with flag")
