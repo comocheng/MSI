@@ -3,6 +3,7 @@ import numpy as np
 import cantera as ct
 import pandas as pd
 import re
+import pickle
 from .. import simulation as sim
 from ...cti_core import cti_processor as ctp
 
@@ -10,7 +11,7 @@ class shockTube(sim.Simulation):
     
     def __init__(self,pressure:float,temperature:float,observables:list,kineticSens:int,physicalSens:int
             ,conditions:dict,initialTime,finalTime,thermalBoundary,mechanicalBoundary,processor:ctp.Processor=None,
-            cti_path=""):
+            cti_path="",histories:int=0):
 
         '''
         Child class of shock Tubes. Inherits all attributes and
@@ -24,6 +25,7 @@ class shockTube(sim.Simulation):
               For example, adiabatic, or isothermal
             - mechanicalBoundary = string, the thermal boundary condition for
               the shocktube. For example, constant pressure or constant volume
+            - histories: save the timehistories of all runs of the simulation
         '''
         sim.Simulation.__init__(self,pressure,temperature,observables,kineticSens,physicalSens,
                                 conditions,processor,cti_path)
@@ -33,6 +35,10 @@ class shockTube(sim.Simulation):
         self.mechanicalBoundary = mechanicalBoundary
         self.kineticSensitivities= None
         self.timeHistory = None
+        if(histories == 1):
+            self.timeHistories=[]
+        else:
+            self.timeHistories=None
         self.setTPX()
     def printVars(self):
         print('initial time: {0}\nfinal time: {1}\n'.format(self.initialTime,self.finalTime),
@@ -41,6 +47,13 @@ class shockTube(sim.Simulation):
               '\nkineticSens: {0}\nphysicalSens: {1}'.format(self.kineticSens,self.physicalSens),
               '\nTPX: {0}'.format(self.processor.solution.TPX)
               )
+    def write_time_histories(self, path=''):
+        if self.timeHistories == None:
+            print("Error: this simulation is not saving time histories, reinitialize with flag")
+        if path=='':
+            path = './time_histories.time'
+        pickle.dump(self.timeHistories,open(path,'wb'))
+        
     def settingShockTubeConditions(self):
         '''
         Determine the mechanical and thermal boundary conditions for a 
@@ -122,6 +135,8 @@ class shockTube(sim.Simulation):
                             pd.DataFrame(tempArray[self.observables.index(observable)])).transpose()),
                             ignore_index=True)
             counter+=1
+        if self.timeHistories != None:
+            self.timeHistories.append(self.timeHistory)
 
         if self.kineticSens == 1:
             numpyMatrixsksens = [dfs[dataframe].values for dataframe in range(len(dfs))]
