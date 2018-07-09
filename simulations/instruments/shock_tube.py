@@ -180,44 +180,50 @@ class shockTube(sim.Simulation):
             return self.timeHistory
 
     #interpolate the most recent time history against the oldest
-    def interpolate_time(self):
+    def interpolate_time(self,working_data=None):
         if self.timeHistories == None:
             print("Error: this simulation is not saving time histories, reinitialize with flag")
             return -1
         else:
-            return self.interpolation(self.timeHistories[0],self.timeHistories[-1],self.observables)
+            return self.interpolation(self.timeHistories[0],self.timeHistories[-1],self.observables,working_data=None)
     
-    def physical_sensitivity_calculator(self):
-        interpolated_time = self.interpolate_time()
+    def interpolate_physical_sensitivities(self,working_data=None):
+        interpolated_time = self.interpolate_time(working_data)
         sensitivity = self.sensitivityCalculation(self.timeHistories[0][self.observables],
                                                   interpolated_time,self.observables)
         if self.physSensHistories != None:
             self.physSensHistories.append(sensitivity)
         return sensitivity
+    
+    def interpolate_experimental(self,working_data = None):
+        if self.timeHistories == None or len(self.timeHistories) == 0:
+            print("Error: can't interpolate without time histories")
+            return -1
+        if self.experimentalData == None:
+            print("Error: must have experimental data before interpolation")
+            return -1
+        else:
+            data = self.interpolation(self.timeHistories[0], self.experimentalData,self.observables,working_data)
+            return data
 
-    def interpolation(self,originalValues,newValues, thingBeingInterpolated):   
+    def interpolation(self,originalValues,newValues, thingBeingInterpolated,working_data=None):   
         #interpolating time histories to original time history 
         if isinstance(originalValues,pd.DataFrame) and isinstance(newValues,pd.DataFrame):
             tempDfForInterpolation = newValues[thingBeingInterpolated]
-            
             tempListForInterpolation = [tempDfForInterpolation.ix[:,x].values for x in range(tempDfForInterpolation.shape[1])]
             interpolatedData = [np.interp(originalValues['time'].values,newValues['time'].values,tempListForInterpolation[x]) for x in range(len(tempListForInterpolation))]
             interpolatedData = [pd.DataFrame(interpolatedData[x]) for x in range(len(interpolatedData))]
             interpolatedData = pd.concat(interpolatedData, axis=1,ignore_index=True)
             interpolatedData.columns = thingBeingInterpolated
             
-            
-            
         # we need to figure out how to change either to ppm or to concentrations 
         # interpolating time histories to experiments 
         elif isinstance(originalValues,pd.DataFrame) and isinstance(newValues,list):
-             time = [newValues[x].ix[:,0].values for x in range(len(newValues))]
-             interpolatedData = [np.interp(time[x],originalValues['time'].values,originalValues[observable].values) for x,observable in enumerate(thingBeingInterpolated)]
-             
-             interpolatedData = [pd.DataFrame(interpolatedData[x]) for x in range(len(interpolatedData))]
-             interpolatedData = [interpolatedData[x].as_matrix().flatten() for x in range(len(interpolatedData))] 
-             interpolatedData = dict(zip(thingBeingInterpolated,interpolatedData))
-             
+           time = [newValues[x].ix[:,0].values for x in range(len(newValues))]
+           interpolatedData = [np.interp(time[x],originalValues['time'].values,working_data[observable].values) for x,observable in enumerate(thingBeingInterpolated)]
+           interpolatedData = [pd.DataFrame(interpolatedData[x]) for x in range(len(interpolatedData))]
+           interpolatedData = pd.concat(interpolatedData, axis=1,ignore_index=True)
+           #interpolatedData = dict(zip(thingBeingInterpolated,interpolatedData))
              
         return interpolatedData
 
