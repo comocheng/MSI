@@ -165,17 +165,20 @@ class shockTube(sim.Simulation):
     
     def physical_sensitivity_calculator(self):
         interpolated_time = self.interpolate_time()
-        sensitivity = self.sensitivityCalculation(timeHistories[0],interpolated_time,self.observables)
+        sensitivity = self.sensitivityCalculation(self.timeHistories[0][self.observables],interpolated_time,self.observables)
         return sensitivity
 
     def interpolation(self,originalValues,newValues, thingBeingInterpolated):   
         #interpolating time histories to original time history 
         if isinstance(originalValues,pd.DataFrame) and isinstance(newValues,pd.DataFrame):
             tempDfForInterpolation = newValues[thingBeingInterpolated]
+            
             tempListForInterpolation = [tempDfForInterpolation.ix[:,x].values for x in range(tempDfForInterpolation.shape[1])]
             interpolatedData = [np.interp(originalValues['time'].values,newValues['time'].values,tempListForInterpolation[x]) for x in range(len(tempListForInterpolation))]
             interpolatedData = [pd.DataFrame(interpolatedData[x]) for x in range(len(interpolatedData))]
             interpolatedData = pd.concat(interpolatedData, axis=1,ignore_index=True)
+            interpolatedData.columns = thingBeingInterpolated
+            
             
             
         # we need to figure out how to change either to ppm or to concentrations 
@@ -187,6 +190,8 @@ class shockTube(sim.Simulation):
              interpolatedData = [pd.DataFrame(interpolatedData[x]) for x in range(len(interpolatedData))]
              interpolatedData = [interpolatedData[x].as_matrix().flatten() for x in range(len(interpolatedData))] 
              interpolatedData = dict(zip(thingBeingInterpolated,interpolatedData))
+             
+             
         return interpolatedData
 
 
