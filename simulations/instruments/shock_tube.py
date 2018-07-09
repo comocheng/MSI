@@ -53,6 +53,13 @@ class shockTube(sim.Simulation):
         if path=='':
             path = './time_histories.time'
         pickle.dump(self.timeHistories,open(path,'wb'))
+    #note this is destructive, the original timeHistories are overwritten, run before any runs
+    def load_time_histories(self, path=''):
+        if self.timeHistories == None:
+            print("Error: this simulation is not saving time histories, reinitialize with flag")
+        if path=='':
+            path = './time_histories.time'
+        pickle.load(self.timeHistories,open(path,'wb'))
         
     def settingShockTubeConditions(self):
         '''
@@ -144,3 +151,27 @@ class shockTube(sim.Simulation):
             return self.timeHistory,self.kineticSensitivities
         else:
             return self.timeHistory
+
+
+    def interpolation(self,originalValues,newValues, thingBeingInterpolated):   
+        #interpolating time histories to original time history 
+        if isinstance(originalValues,pd.DataFrame) and isinstance(newValues,pd.DataFrame):
+            tempDfForInterpolation = newValues[thingBeingInterpolated]
+            tempListForInterpolation = [tempDfForInterpolation.ix[:,x].values for x in range(tempDfForInterpolation.shape[1])]
+            interpolatedData = [np.interp(originalValues['time'].values,newValues['time'].values,tempListForInterpolation[x]) for x in range(len(tempListForInterpolation))]
+            interpolatedData = [pd.DataFrame(interpolatedData[x]) for x in range(len(interpolatedData))]
+            interpolatedData = pd.concat(interpolatedData, axis=1,ignore_index=True)
+            
+            
+        # we need to figure out how to change either to ppm or to concentrations 
+        # interpolating time histories to experiments 
+        elif isinstance(originalValues,pd.DataFrame) and isinstance(newValues,list):
+             time = [newValues[x].ix[:,0].values for x in range(len(newValues))]
+             interpolatedData = [np.interp(time[x],originalValues['time'].values,originalValues[observable].values) for x,observable in enumerate(thingBeingInterpolated)]
+             
+             interpolatedData = [pd.DataFrame(interpolatedData[x]) for x in range(len(interpolatedData))]
+             interpolatedData = [interpolatedData[x].as_matrix().flatten() for x in range(len(interpolatedData))] 
+             interpolatedData = dict(zip(thingBeingInterpolated,interpolatedData))
+             
+             
+        return interpolatedData
