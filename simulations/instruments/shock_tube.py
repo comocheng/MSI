@@ -162,6 +162,11 @@ class shockTube(sim.Simulation):
             return -1
         else:
             return self.interpolation(self.timeHistories[0],self.timeHistories[-1],self.observables)
+    
+    def physical_sensitivity_calculator(self):
+        interpolated_time = self.interpolate_time()
+        sensitivity = self.sensitivityCalculation(timeHistories[0],interpolated_time,self.observables)
+        return sensitivity
 
     def interpolation(self,originalValues,newValues, thingBeingInterpolated):   
         #interpolating time histories to original time history 
@@ -182,6 +187,16 @@ class shockTube(sim.Simulation):
              interpolatedData = [pd.DataFrame(interpolatedData[x]) for x in range(len(interpolatedData))]
              interpolatedData = [interpolatedData[x].as_matrix().flatten() for x in range(len(interpolatedData))] 
              interpolatedData = dict(zip(thingBeingInterpolated,interpolatedData))
-             
-             
         return interpolatedData
+
+
+    def sensitivityCalculation(self,originalValues,newValues,thingToFindSensitivtyOf,dk=.01):
+        if isinstance(originalValues,pd.DataFrame) and isinstance(newValues,pd.DataFrame):
+            newValues.columns = thingToFindSensitivtyOf
+            newValues = newValues.applymap(np.log)
+            originalValues = originalValues.applymap(np.log)
+            sensitivity = (newValues.subtract(originalValues)/dk)
+            return sensitivity
+        else:
+            print("Error: wrong datatype, both must be pandas data frames")
+            return -1
