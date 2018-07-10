@@ -265,7 +265,7 @@ class shockTube(sim.Simulation):
         
         for x in int_exp:
             x.columns = self.observables
-            x[x<0] = 'NaN'
+            x[x<0] = np.nan
         if single is not  None:
             return int_exp[0]
         else:
