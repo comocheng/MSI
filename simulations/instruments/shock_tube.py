@@ -184,22 +184,38 @@ class shockTube(sim.Simulation):
     #interpolate the most recent time history against the oldest by default
     #working_data used if have list not pandas frame
     #return more data about what was interpolated in a tuple?
-    def interpolate_time(self,working_data=None,index:int=-1):
+    def interpolate_time(self,index:int=-1):
         if self.timeHistories == None:
             print("Error: this simulation is not saving time histories, reinitialize with flag")
             return -1
         else:
-            return self.interpolation(self.timeHistories[0],self.timeHistories[index],self.observables,working_data=None)
-    def interpolate_species_adjustment(self,working_data=None):
+            return self.interpolation(self.timeHistories[0],self.timeHistories[index],self.observables)
+    #assumes most recent time histories are the correct ones to interpolate on
+    #interpolates agains the original time history
+    def interpolate_species_adjustment(self):
         interpolated_data = []
-        temp = set(self.conditions.keys()).difference(['Ar','AR','HE','He','Kr','KR','Xe','XE','NE','Ne'])
+        species_to_loop = set(self.conditions.keys()).difference(['Ar','AR','HE','He','Kr','KR','Xe','XE','NE','Ne'])
 
-        for x in range(0,len(temp)):
+        for x in range(0,len(species_to_loop)):
             interpolated_data.insert(0,self.interpolate_time(index=-1-x))
 
         return interpolated_data
+    
+    #interpolate a range of time histories agains the original
+    #possibly add experimental flag to do range with exp data
+    def interpolate_range(self,begin:int,end:int):
+        if begin<0 or end>= len(self.timeHistories):
+            print("Error: invalid indices")
+        if self.timeHistories == None:
+            print("Error: simulation is not saving time histories")
 
-    def interpolate_physical_sensitivities(self,working_data=None):
+        interpolated_data = []
+        for x in range(begin,end+1):
+            interpolated_data.append(interpolate_time(index=x))
+        return interpolated_data
+        
+    #interpolates agains the original time history
+    def interpolate_physical_sensitivities(self):
         interpolated_time = self.interpolate_time(working_data)
         sensitivity = self.sensitivityCalculation(self.timeHistories[0][self.observables],
                                                   interpolated_time,self.observables)
@@ -207,18 +223,55 @@ class shockTube(sim.Simulation):
             self.physSensHistories.append(sensitivity)
         return sensitivity
     
-    def interpolate_experimental(self,working_data = None):
-        if self.timeHistories == None or len(self.timeHistories) == 0:
+    #assumes pre_interpolated has been interpolated against the original time history
+    #assumes pre_interpolated is a list of dataframes where each dataframe is a time history
+    #single is a single dataframe representing one time history/run of the simulation
+    def interpolate_experimental(self,pre_interpolated = [], single = None):
+        if self.timeHistories == None:
             print("Error: can't interpolate without time histories")
             return -1
         if self.experimentalData == None:
             print("Error: must have experimental data before interpolation")
             return -1
+        if len(pre_interpolated)!=0 and single != None:
+            print("Error: can only specify one of pre_interpolated, single")
+        if single is not  None:
+            pre_interpolated = [single]
+        
+        int_exp = []
+        for time_history in pre_interpolated:
+            array_list = []
+            max_size = 0
+            for i,frame in enumerate(self.experimentalData): #each frame is data for one observable
+                interpolated_column= np.interp(frame.ix[:,0],
+                                               self.timeHistories[0]['time'],
+                                               time_history.ix[:,i])
+                
+                interpolated_column= np.reshape(interpolated_column,
+                                            ((interpolated_column.shape[0],1)))
+                array_list.append(interpolated_column)
+                max_size = max(interpolated_column.shape[0],max_size)
+            padded_arrays= []
+            for arr in array_list:
+                if arr.shape[0] < max_size:
+                    padded_arrays.append(np.pad(arr,
+                                        ((0,max_size - arr.shape[0]),(0,0)),
+                                        'constant',constant_values=-1))
+                else:
+                    padded_arrays.append(arr)
+            np_array = np.hstack((padded_arrays))
+            new_frame = pd.DataFrame(np_array)
+            int_exp.append(new_frame)
+        
+        for x in int_exp:
+            x.columns = self.observables
+            x[x<0] = 'NaN'
+        if single is not  None:
+            return int_exp[0]
         else:
-            data = self.interpolation(self.timeHistories[0], self.experimentalData,self.observables,working_data)
-            return data
+            return int_exp
 
-    def interpolation(self,originalValues,newValues, thingBeingInterpolated,working_data=None):   
+    def interpolation(self,originalValues,newValues, thingBeingInterpolated):   
         #interpolating time histories to original time history 
         if isinstance(originalValues,pd.DataFrame) and isinstance(newValues,pd.DataFrame):
             tempDfForInterpolation = newValues[thingBeingInterpolated]
@@ -227,16 +280,9 @@ class shockTube(sim.Simulation):
             interpolatedData = [pd.DataFrame(interpolatedData[x]) for x in range(len(interpolatedData))]
             interpolatedData = pd.concat(interpolatedData, axis=1,ignore_index=True)
             interpolatedData.columns = thingBeingInterpolated
-            
-        # we need to figure out how to change either to ppm or to concentrations 
-        # interpolating time histories to experiments 
-        elif isinstance(originalValues,pd.DataFrame) and isinstance(newValues,list):
-           time = [newValues[x].ix[:,0].values for x in range(len(newValues))]
-           interpolatedData = [np.interp(time[x],originalValues['time'].values,working_data[observable].values) for x,observable in enumerate(thingBeingInterpolated)]
-           interpolatedData = [pd.DataFrame(interpolatedData[x]) for x in range(len(interpolatedData))]
-           interpolatedData = pd.concat(interpolatedData, axis=1,ignore_index=True)
-           #interpolatedData = dict(zip(thingBeingInterpolated,interpolatedData))
-             
+        else:
+            print("Error: values must be pandas dataframes")
+            return -1
         return interpolatedData
 
 
