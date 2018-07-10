@@ -17,7 +17,7 @@ test_tube = st.shockTube(pressure=1.74,
                          thermalBoundary='Adiabatic',
                          mechanicalBoundary='constant pressure',
                          processor=test_p,
-                         histories=1,
+                         save_timeHistories=1,
                          save_physSensHistories=1)
 
 csv_paths = ['MSI/data/test_data/hong_h2o.csv','MSI/data/test_data/hong_oh.csv']

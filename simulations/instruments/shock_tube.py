@@ -9,9 +9,11 @@ from ...cti_core import cti_processor as ctp
 
 class shockTube(sim.Simulation):
     
-    def __init__(self,pressure:float,temperature:float,observables:list,kineticSens:int,physicalSens:int
-            ,conditions:dict,initialTime,finalTime,thermalBoundary,mechanicalBoundary,processor:ctp.Processor=None,
-            cti_path="",histories:int=0, save_physSensHistories=0):
+    def __init__(self,pressure:float,temperature:float,observables:list,
+                 kineticSens:int,physicalSens:int,conditions:dict,
+                 initialTime,finalTime,thermalBoundary,mechanicalBoundary,
+                 processor:ctp.Processor=None,cti_path="",save_timeHistories:int=0, 
+                 save_physSensHistories=0):
 
         '''
         Child class of shock Tubes. Inherits all attributes and
@@ -36,7 +38,7 @@ class shockTube(sim.Simulation):
         self.kineticSensitivities= None
         self.timeHistory = None
         self.experimentalData = None
-        if histories == 1:
+        if save_timeHistories == 1:
             self.timeHistories=[]
         else:
             self.timeHistories=None
@@ -65,7 +67,7 @@ class shockTube(sim.Simulation):
             print("Error: this simulation is not saving time histories, reinitialize with flag")
             return -1
         if path=='':
-            path = './physSensHistoriesitivities.sens'
+            path = './physSensHistories.sens'
             pickle.dump(self.physSensHistories,open(path,'wb'))
         return 0
 
@@ -74,7 +76,7 @@ class shockTube(sim.Simulation):
             print("Error: this simulation is not saving time histories, reinitialize with flag")
             return -1
         if path=='':
-            path = './physSensHistoriesitivities.sens'
+            path = './physSensHistories.sens'
         pickle.load(self.physSensHistories,open(path,'wb'))
         return 0
 
@@ -179,14 +181,24 @@ class shockTube(sim.Simulation):
         else:
             return self.timeHistory
 
-    #interpolate the most recent time history against the oldest
-    def interpolate_time(self,working_data=None):
+    #interpolate the most recent time history against the oldest by default
+    #working_data used if have list not pandas frame
+    #return more data about what was interpolated in a tuple?
+    def interpolate_time(self,working_data=None,index:int=-1):
         if self.timeHistories == None:
             print("Error: this simulation is not saving time histories, reinitialize with flag")
             return -1
         else:
-            return self.interpolation(self.timeHistories[0],self.timeHistories[-1],self.observables,working_data=None)
-    
+            return self.interpolation(self.timeHistories[0],self.timeHistories[index],self.observables,working_data=None)
+    def interpolate_species_adjustment(self,working_data=None):
+        interpolated_data = []
+        temp = set(self.conditions.keys()).difference(['Ar','AR','HE','He','Kr','KR','Xe','XE','NE','Ne'])
+
+        for x in range(0,len(temp)-1):
+            interpolated_data.insert(0,self.interpolate_time(index=-1-x))
+
+        return interpolated_data
+
     def interpolate_physical_sensitivities(self,working_data=None):
         interpolated_time = self.interpolate_time(working_data)
         sensitivity = self.sensitivityCalculation(self.timeHistories[0][self.observables],

@@ -17,10 +17,10 @@ test_tube = st.shockTube(pressure=1.74,
                          thermalBoundary='Adiabatic',
                          mechanicalBoundary='constant pressure',
                          processor=test_p,
-                         save_timeHistories=1)
+                         save_timeHistories=1,
+                         save_physSensHistories=1)
 test_tube.run()
-test_tube.sensitivity_adjustment(temp_del = .01)
-test_tube.species_adjustment(spec_del = .01)
-print(test_tube.timeHistories)
-test_tube.write_time_histories()
+test_tube.species_adjustment(.01)
 
+data = test_tube.interpolate_species_adjustment()
+print(data)
