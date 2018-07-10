@@ -4,7 +4,7 @@ sys.path.append('.') #get rid of this at some point with central test script or 
 import MSI.simulations.instruments.shock_tube as st
 import MSI.cti_core.cti_processor as pr
 import cantera as ct
-
+import pandas
 test_p = pr.Processor('MSI/data/test_data/FFCM1.cti')
 test_tube = st.shockTube(pressure=1.74,
                          temperature=1880,
