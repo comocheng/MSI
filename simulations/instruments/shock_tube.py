@@ -194,7 +194,7 @@ class shockTube(sim.Simulation):
         interpolated_data = []
         temp = set(self.conditions.keys()).difference(['Ar','AR','HE','He','Kr','KR','Xe','XE','NE','Ne'])
 
-        for x in range(0,len(temp)-1):
+        for x in range(0,len(temp)):
             interpolated_data.insert(0,self.interpolate_time(index=-1-x))
 
         return interpolated_data
