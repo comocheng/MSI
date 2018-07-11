@@ -128,7 +128,7 @@ class shockTube(sim.Simulation):
         if finalTime == -1.0:
             finalTime = self.finalTime
         self.timeHistory = None
-        self.kineticSensitivities= None
+        self.kineticSensitivities= None #3D numpy array, columns are reactions with timehistories, depth gives the observable for those histories
         conditions = self.settingShockTubeConditions()
         mechanicalBoundary = conditions[1]
         
@@ -216,12 +216,44 @@ class shockTube(sim.Simulation):
         
     #interpolates agains the original time history
     def interpolate_physical_sensitivities(self):
-        interpolated_time = self.interpolate_time(working_data)
+        interpolated_time = self.interpolate_time()
         sensitivity = self.sensitivityCalculation(self.timeHistories[0][self.observables],
                                                   interpolated_time,self.observables)
         if self.physSensHistories != None:
             self.physSensHistories.append(sensitivity)
         return sensitivity
+    
+    #returns a 3D array of interpolated time histories corrosponding to physical sensitivities
+    def interpolate_experimental_kinetic(self, pre_interpolated = []):
+        if self.experimentalData == None:
+            print("Error: experimental data must be loaded")
+            return -1
+        if len(pre_interpolated) == 0 and not self.kineticSensitivities.any():
+            print("Error: must specify pre_interpolated or have kineticSensitivities run first")
+            return -1
+        elif len(pre_interpolated)>0:
+            array = pre_interpolated
+        else:
+            array = self.kineticSensitivities
+        exp_interp_array = []
+        if len(self.experimentalData) != array.shape[2]:
+            print("Error: mismatch between kineticSensitivities observables and given experimental data")
+            return -1
+        #exp data and kineticSensitivities must match in size and order of observables
+        for i,frame in enumerate(self.experimentalData):
+            sheet = array[:,:,i]
+            exp_interp_array.append([])
+            for time_history in sheet.T:
+                new_history = np.interp(frame.ix[:,0],
+                                       self.timeHistories[0]['time'],
+                                       time_history)
+                new_history = new_history.reshape((new_history.shape[0],
+                                                  1))
+                exp_interp_array[-1].append(new_history)
+        flipped = [] 
+        for x in exp_interp_array:
+            flipped.append(np.hstack(x))
+        return flipped
     
     #assumes pre_interpolated has been interpolated against the original time history
     #assumes pre_interpolated is a list of dataframes where each dataframe is a time history
