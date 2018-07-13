@@ -144,7 +144,6 @@ class shockTube(sim.Simulation):
         sim = ct.ReactorNet([shockTube])
 
         columnNames = [shockTube.component_name(item) for item in range(shockTube.n_vars)]
-        print(columnNames)
         columnNames = ['time']+['pressure']+columnNames
         self.timeHistory = pd.DataFrame(columns=columnNames)
 
@@ -159,7 +158,6 @@ class shockTube(sim.Simulation):
         while t < self.finalTime:
             t = sim.step()
             if mechanicalBoundary =='constant volume':
-                print("what")
                 state = np.hstack([t,shockTube.thermo.P,shockTube.mass,shockTube.volume,
                                shockTube.T, shockTube.thermo.X])
             else:
