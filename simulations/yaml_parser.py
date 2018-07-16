@@ -17,7 +17,7 @@ class Parser(object):
             config = yaml.load(f)
         return config
     
-    def parse_shock_tube_obj(self,loaded_exp:dict={}, loaded_absorbtion:dict={}):
+    def parse_shock_tube_obj(self,loaded_exp:dict={}, loaded_absorption:dict={}):
      
         pressure = loaded_exp['common-properties']['pressure']['value']
         temperature = loaded_exp['common-properties']['temperature']['value']
