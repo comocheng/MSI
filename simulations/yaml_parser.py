@@ -8,7 +8,7 @@ class Parser(object):
            exp_file_path: path to yaml file which contains experimental information
            absorbtion_file_path: path to absorbtion yaml file which contains absorbance data
         '''
-        self.yaml_file_path = yaml_file_path
+        self.yaml_file_path = exp_file_path 
         self.absorbtion_file_path = absorption_file_path
 
     #config is a dict containing the yaml information
