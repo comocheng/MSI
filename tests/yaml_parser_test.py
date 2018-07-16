@@ -7,7 +7,8 @@ import MSI.simulations.yaml_parser as yp
 import cantera as ct
 
 parser = yp.Parser()
-config = parser.load_to_obj('MSI/data/test_data/Hong_5.yaml',
-                            'MSI/data/test_data/Troe_8_abs_updated.yaml')
-loaded_tube = parser.parse_shock_tube_obj(loaded_exp=config)
+                   
+exp = parser.load_to_obj('MSI/data/test_data/Hong_5.yaml')
+absp = parser.load_to_obj('MSI/data/test_data/Troe_8_abs_updated.yaml')
+loaded_tube = parser.parse_shock_tube_obj(loaded_exp=exp, loaded_absorption=absp)
 print(loaded_tube)
