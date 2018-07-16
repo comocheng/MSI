@@ -2,14 +2,8 @@ import yaml
 
 # subpackage for reading yaml files that describe simulations and absorbance data
 class Parser(object):
-    def __init__(self, exp_file_path:str = '', absorption_file_path:str =  ''):
-        '''
-        Input:
-           exp_file_path: path to yaml file which contains experimental information
-           absorbtion_file_path: path to absorbtion yaml file which contains absorbance data
-        '''
-        self.exp_file_path = exp_file_path 
-        self.absorbtion_file_path = absorption_file_path
+    def __init__(self):
+        pass
 
     #config is a dict containing the yaml information
     def load_to_obj(self, path:str = ''):
