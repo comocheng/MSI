@@ -53,7 +53,7 @@ class Parser(object):
         mole_fraction_relative_uncertainty = [point['targets'][0]['relative-uncertainty'] for point in loaded_exp['datapoints']['mole-fraction']]        
 
 
-        if loaded_absorption_file == {}:
+        if loaded_absorption == {}:
             return{
                'pressure':pressure,
                'temperature':temperature,
@@ -85,11 +85,11 @@ class Parser(object):
             absorbance_relative_uncertainty = [point['relative-uncertainty'] for point in loaded_exp['datapoints']['absorbance']]
             #importing absorbance uncertainty 
 
-            absorbance_csv_files = [csvfile['csvfile'] for csvfile in loaded_exp_file['datapoints']['absorbance']]
-            absorbance_csv_wavelengths = [csvfile['wavelength']['value'] for csvfile in loaded_exp_file['datapoints']['absorbance']]
-            absorption_observables = [species['species'] for species in loaded_absorption_file['Absorption-coefficients']]
+            absorbance_csv_files = [csvfile['csvfile'] for csvfile in loaded_exp['datapoints']['absorbance']]
+            absorbance_csv_wavelengths = [csvfile['wavelength']['value'] for csvfile in loaded_exp['datapoints']['absorbance']]
+            absorption_observables = [species['species'] for species in loaded_absorption['Absorption-coefficients']]
 
-            observables = [x for x in (mole_fractionObservables + concentration_observables + absorption_observables) if x is not None]
+            observables = [x for x in (mole_fraction_observables + concentration_observables + absorption_observables) if x is not None]
 
 
             uncertainty_parameter_ones = [[] for i in range(len(loaded_absorbtion['Absorption-coefficients']))]
@@ -99,7 +99,7 @@ class Parser(object):
                 
             uncertainty_parameter_twos = [[] for i in range(len(loaded_absorbtion['Absorption-coefficients']))]
             for uncertainty in range(len(loaded_absorbtion['Absorption-coefficients'])):
-                temp = [wavelength['parameter-two']['absolute-uncertainty']['value'] for wavelength in loaded_absorption_file['Absorption-coefficients'][uncertainty]['wave-lengths']]
+                temp = [wavelength['parameter-two']['absolute-uncertainty']['value'] for wavelength in loaded_absorption['Absorption-coefficients'][uncertainty]['wave-lengths']]
                 uncertainty_parameter_twos[uncertainty] = temp            
  
             return {
