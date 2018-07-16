@@ -22,9 +22,9 @@ class Parser(object):
         pressure = loaded_exp['common-properties']['pressure']['value']
         temperature = loaded_exp['common-properties']['temperature']['value']
         mole_fractions = [((concentration['mole-fraction'])) for concentration in loaded_exp['common-properties']['composition']]
-        mole_fractions = [float(elm) for elm in molef_fractions]
+        mole_fractions = [float(elm) for elm in mole_fractions]
         species_names = [(species['species']) for species in loaded_exp['common-properties']['composition']]
-        conditions = dict(zip(speciesNames,moleFractions))
+        conditions = dict(zip(speciesNames,mole_fractions))
         thermal_boundary = loaded_exp['common-properties']['assumptions']['thermal-boundary']
         mole_fraction_observables = [point['targets'][0]['name'] for point in loaded_exp['datapoints']['mole-fraction']]
         species_uncertainties = [uncert['relative-uncertainty'] for uncert in loaded_exp['common-properties']['composition']]
