@@ -24,7 +24,7 @@ class Parser(object):
         mole_fractions = [((concentration['mole-fraction'])) for concentration in loaded_exp['common-properties']['composition']]
         mole_fractions = [float(elm) for elm in mole_fractions]
         species_names = [(species['species']) for species in loaded_exp['common-properties']['composition']]
-        conditions = dict(zip(speciesNames,mole_fractions))
+        conditions = dict(zip(species_names,mole_fractions))
         thermal_boundary = loaded_exp['common-properties']['assumptions']['thermal-boundary']
         mole_fraction_observables = [point['targets'][0]['name'] for point in loaded_exp['datapoints']['mole-fraction']]
         species_uncertainties = [uncert['relative-uncertainty'] for uncert in loaded_exp['common-properties']['composition']]
@@ -92,13 +92,13 @@ class Parser(object):
             observables = [x for x in (mole_fraction_observables + concentration_observables + absorption_observables) if x is not None]
 
 
-            uncertainty_parameter_ones = [[] for i in range(len(loaded_absorbtion['Absorption-coefficients']))]
-            for uncertainty in range(len(loaded_absorbtion['Absorption-coefficients'])):
-                temp = [wavelength['parameter-one']['absolute-uncertainty']['value'] for wavelength in loaded_absorbtion['Absorption-coefficients'][uncertainty]['wave-lengths']]
+            uncertainty_parameter_ones = [[] for i in range(len(loaded_absorption['Absorption-coefficients']))]
+            for uncertainty in range(len(loaded_absorption['Absorption-coefficients'])):
+                temp = [wavelength['parameter-one']['absolute-uncertainty']['value'] for wavelength in loaded_absorption['Absorption-coefficients'][uncertainty]['wave-lengths']]
                 uncertainty_parameter_ones[uncertainty] = temp
                 
-            uncertainty_parameter_twos = [[] for i in range(len(loaded_absorbtion['Absorption-coefficients']))]
-            for uncertainty in range(len(loaded_absorbtion['Absorption-coefficients'])):
+            uncertainty_parameter_twos = [[] for i in range(len(loaded_absorption['Absorption-coefficients']))]
+            for uncertainty in range(len(loaded_absorption['Absorption-coefficients'])):
                 temp = [wavelength['parameter-two']['absolute-uncertainty']['value'] for wavelength in loaded_absorption['Absorption-coefficients'][uncertainty]['wave-lengths']]
                 uncertainty_parameter_twos[uncertainty] = temp            
  
