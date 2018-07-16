@@ -93,7 +93,7 @@ class Parser(object):
 
 
             uncertainty_parameter_ones = [[] for i in range(len(loaded_absorbtion['Absorption-coefficients']))]
-            for uncertainty in xrange(len(loaded_absorbtion['Absorption-coefficients'])):
+            for uncertainty in range(len(loaded_absorbtion['Absorption-coefficients'])):
                 temp = [wavelength['parameter-one']['absolute-uncertainty']['value'] for wavelength in loaded_absorbtion['Absorption-coefficients'][uncertainty]['wave-lengths']]
                 uncertainty_parameter_ones[uncertainty] = temp
                 
@@ -106,16 +106,16 @@ class Parser(object):
                    'pressure':pressure,
                    'temperature':temperature,
                    'conditions':conditions,
-                   'thermalBoundary':thermalBoundary,
-                   'speciesNames': speciesNames,
+                   'thermalBoundary':thermal_boundary,
+                   'speciesNames': species_names,
                    'observables': observables,
                    'moleFractionObservables':mole_fraction_observables,
                    'concentrationObservables':concentration_observables, 
                    'absorbanceObservables':absorption_observables,
-                   'initialTime': initialTime,
-                   'finalTime':finalTime,
-                   'speciesNames': speciesNames,
-                   'MoleFractions':moleFractions,
+                   'initialTime': initial_time,
+                   'finalTime':final_time,
+                   'speciesNames': species_names,
+                   'MoleFractions':mole_fractions,
                    'absorbanceCsvFiles': absorbance_csv_files,
                    'moleFractionCsvFiles':mole_fraction_csv_files,
                    'concentrationCsvFiles':concentration_csv_files,
