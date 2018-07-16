@@ -2,13 +2,13 @@ import yaml
 
 # subpackage for reading yaml files that describe simulations and absorbance data
 class Parser(object):
-    def __init__(self, exp_file_path:str = '', absorbtion_file_path:str =  ''):
+    def __init__(self, exp_file_path:str = '', absorption_file_path:str =  ''):
         '''
         Input:
            exp_file_path: path to yaml file which contains experimental information
            absorbtion_file_path: path to absorbtion yaml file which contains absorbance data
         '''
-        self.yaml_file_path = exp_file_path 
+        self.exp_file_path = exp_file_path 
         self.absorbtion_file_path = absorption_file_path
 
     #config is a dict containing the yaml information
@@ -22,7 +22,7 @@ class Parser(object):
         pressure = loaded_exp['common-properties']['pressure']['value']
         temperature = loaded_exp['common-properties']['temperature']['value']
         mole_fractions = [((concentration['mole-fraction'])) for concentration in loaded_exp['common-properties']['composition']]
-        mole_fractions = [float(elm) for elm in moleFractions]
+        mole_fractions = [float(elm) for elm in molef_fractions]
         species_names = [(species['species']) for species in loaded_exp['common-properties']['composition']]
         conditions = dict(zip(speciesNames,moleFractions))
         thermal_boundary = loaded_exp['common-properties']['assumptions']['thermal-boundary']
@@ -40,7 +40,7 @@ class Parser(object):
         mole_fraction_csv_files = [csvfile['csvfile'] for csvfile in loaded_exp['datapoints']['mole-fraction']]
         concentration_csv_files = [csvfile['csvfile'] for csvfile in loaded_exp['datapoints']['concentration']]
         path_length = loaded_exp['apparatus']['inner-diameter']['value']
-        csv_files = [x for x in (moleFractionCsvFiles + concentrationCsvFiles) if x is not None]
+        csv_files = [x for x in (mole_fraction_csv_files + concentration_csv_files) if x is not None]
 
 
         #importing unceratinty values 
@@ -53,7 +53,7 @@ class Parser(object):
         mole_fraction_relative_uncertainty = [point['targets'][0]['relative-uncertainty'] for point in loaded_exp['datapoints']['mole-fraction']]        
 
 
-        if loadedAbsorptionFile == {}:
+        if loaded_absorption_file == {}:
             return{
                'pressure':pressure,
                'temperature':temperature,
@@ -85,9 +85,9 @@ class Parser(object):
             absorbance_relative_uncertainty = [point['relative-uncertainty'] for point in loaded_exp['datapoints']['absorbance']]
             #importing absorbance uncertainty 
 
-            absorbance_csv_files = [csvfile['csvfile'] for csvfile in loadedYamlFile['datapoints']['absorbance']]
-            absorbance_csv_wavelengths = [csvfile['wavelength']['value'] for csvfile in loadedYamlFile['datapoints']['absorbance']]
-            absorption_observables = [species['species'] for species in loadedAbsorptionFile['Absorption-coefficients']]
+            absorbance_csv_files = [csvfile['csvfile'] for csvfile in loaded_exp_file['datapoints']['absorbance']]
+            absorbance_csv_wavelengths = [csvfile['wavelength']['value'] for csvfile in loaded_exp_file['datapoints']['absorbance']]
+            absorption_observables = [species['species'] for species in loaded_absorption_file['Absorption-coefficients']]
 
             observables = [x for x in (mole_fractionObservables + concentration_observables + absorption_observables) if x is not None]
 
@@ -99,7 +99,7 @@ class Parser(object):
                 
             uncertainty_parameter_twos = [[] for i in range(len(loaded_absorbtion['Absorption-coefficients']))]
             for uncertainty in range(len(loaded_absorbtion['Absorption-coefficients'])):
-                temp = [wavelength['parameter-two']['absolute-uncertainty']['value'] for wavelength in loadedAbsorptionFile['Absorption-coefficients'][uncertainty]['wave-lengths']]
+                temp = [wavelength['parameter-two']['absolute-uncertainty']['value'] for wavelength in loaded_absorption_file['Absorption-coefficients'][uncertainty]['wave-lengths']]
                 uncertainty_parameter_twos[uncertainty] = temp            
  
             return {
