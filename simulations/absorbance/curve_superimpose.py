@@ -1,5 +1,5 @@
 import MSI.simulations as sim
-import re
+import numpy as np
 
 def superimpose_shock_tube(absorbance_csv_files:list,
                            time_history,
@@ -30,47 +30,47 @@ def superimpose_shock_tube(absorbance_csv_files:list,
     species_and_coupled_coefficients = dict(zip(species,coupled_coefficients))
     species_and_functional_form = dict(zip(species,functional_form)) 
     
-    temperature_matrix = time_history['temperature'].as_matrix()
+    
 
     flat_list = [item for sublist in wavelengths for item in sublist]
     flat_list = list(set(flat_list))
     absorbance_species_list = []
     for i, wl in enumerate(flat_list):
-        absorbance_species.append([])
+        absorbance_species_list.append([])
         for j,specie in enumerate(species):
-            if wl in SandWL[specie]:
+            if wl in species_and_wavelengths[specie]:
                 absorbance_species_list[i].append(specie)
  
 
     absorbance_species_wavelengths= []
-    for i in xrange(len(absorbanceSpeciesList)):
+    for i in range(len(absorbance_species_list)):
         wavelength = flat_list[i]
-        for j in xrange(len(absorbanceSpeciesList[i])):            
-            value = absorbanceSpeciesList[i][j]
+        for j in range(len(absorbance_species_list[i])):            
+            value = absorbance_species_list[i][j]
             index = species_and_wavelengths[value].index(wavelength)
-            absorbance_species_wavelengths.append(calc_absorb(simulation,
-                                                          value,
-                                                          species_and_functional_form[value][index],
-                                                          species_and_coupled_coefficients[value][index],
-                                                          wavelength,
-                                                          pathlength,
-                                                          temperature_matrix),
+            absorbance_species_wavelengths.append(calc_absorb(value,
+                                                              species_and_functional_form[value][index],
+                                                              species_and_coupled_coefficients[value][index],
+                                                              wavelength,
+                                                              pathlength,
+                                                              time_history),
                                               value,
                                               wavelength)
 
     return absorbance_species_wavelengths
 
-def calc_absorb(simulation:sim.instruments.shock_tube.shockTube,
-                   species,
+def calc_absorb(species,
                    ff,
                    cc,
                    wavelength:float,
                    pathlength,
-                   temperature):
+                   time_history):
+    temperature_matrix = time_history['temperature'].as_matrix()
+    pressure_matrix = time_history['pressure'].as_matrix()
     if ff == 'A':
-        epsilon = ((cc[1]*temperature) + cc[0])
+        epsilon = ((cc[1]*temperature_matrix) + cc[0])
     if ff == 'B':
-        epsilon = (cc[0]*(1-(np.exp(np.true_divide(cc[1],temperature)))))*1000
+        epsilon = (cc[0]*(1-(np.exp(np.true_divide(cc[1],temperature_matrix)))))*1000
     if ff == 'C':
         epsilon = cc[0] 
     
@@ -79,7 +79,9 @@ def calc_absorb(simulation:sim.instruments.shock_tube.shockTube,
        #multiplying by 1000 to convert from L to cm^3 from the epsilon given in paper 
        #this applies if the units on epsilon are given as they are in kappl paper 
        #must calcuate and pass in reactor volume 
-    concentration = ((np.true_divide(1,temperature.flatten()*(simulation.processor.solution['pressure'].as_matrix().flatten()) * (1/(8.314e6)))*simulation.processor.solution[value].as_matrix().flatten()
+    concentration = ((np.true_divide(1,temperature_matrix.flatten()))*(pressure_matrix.flatten()) * (1/(8.314e6)))*time_history[species].as_matrix().flatten()
+    
+    #((np.true_divide(1,modelDataObject.solution['temperature'].as_matrix().flatten())) * (modelDataObject.solution['pressure'].as_matrix().flatten()) * (1/(8.314e6)))*modelDataObject.solution[value].as_matrix().flatten()
     absorb = pathlength*(epsilon*concentration)
     return absorb
  
@@ -94,7 +96,7 @@ def get_wavelengths(absorb:dict):
 def couple_parameters(absorb:dict()):
     parameter_ones = [] #for the epsilon calculations, there is always a parameter
     for p1 in range(len(absorb['Absorption-coefficients'])):
-        temp = [wlh['parameter-one']['value'] for wl in absorb['Absorption-coefficients'][p1]['wave-lengths']]
+        temp = [wl['parameter-one']['value'] for wl in absorb['Absorption-coefficients'][p1]['wave-lengths']]
         parameter_ones.append(temp)
     
     #parameter two does not always really exist, but we will always define it in the yaml file to be 0 in that case
