@@ -2,12 +2,12 @@ import MSI.simulations as sim
 import re
 
 def superimpose_shock_tube(absorbance_csv_files:list,
-                           simulation:sim.instruments.shock_tube.shockTube,
+                           time_history,
                            absorb:dict,pathlength:float,
                            absorbance_csv_wavelengths:list):
     '''Input:
         absorbanceCsvFiles: list of absorbance experimental data
-        simulation: shockTube instance for accessing TPX and solution data
+        time_history: time history from some run used to get temperature matrix
         absorb: dict of yaml parsed absorbance data ie yaml_parser.parse_shock_tube_obj was run
         pathLenth: diameter of shock tube, integer
         absorbanceCsvWavelengths: list of wavelengths absorbances were measured at, in nm
@@ -20,17 +20,17 @@ def superimpose_shock_tube(absorbance_csv_files:list,
     if coupled_coefficients == -1:
         print("Error: could not construct coupled coefficients")
         return -1
-
+    
+    species = [species['species'] for species in absorb['Absorption-coefficients']]
     wavelengths = get_wavelengths(absorb)
     #functional form takes A B C D, changes which equation used
     functional_form = get_funtional(absorb) 
-    
     #group data by species for easier manipulation
     species_and_wavelengths = dict(zip(species, wavelengths))
     species_and_coupled_coefficients = dict(zip(species,coupled_coefficients))
     species_and_functional_form = dict(zip(species,functional_form)) 
     
-    temperature_matrix = simulation.processor.solution['temperature'].as_matrix()
+    temperature_matrix = time_history['temperature'].as_matrix()
 
     flat_list = [item for sublist in wavelengths for item in sublist]
     flat_list = list(set(flat_list))
@@ -41,11 +41,6 @@ def superimpose_shock_tube(absorbance_csv_files:list,
             if wl in SandWL[specie]:
                 absorbance_species_list[i].append(specie)
  
-    d = {}
-    s = {}
-    ATemp= {}
-    APressure = {}
-    ASpecies = {}
 
     absorbance_species_wavelengths= []
     for i in xrange(len(absorbanceSpeciesList)):
@@ -58,7 +53,8 @@ def superimpose_shock_tube(absorbance_csv_files:list,
                                                           species_and_functional_form[value][index],
                                                           species_and_coupled_coefficients[value][index],
                                                           wavelength,
-                                                          pathlength),
+                                                          pathlength,
+                                                          temperature_matrix),
                                               value,
                                               wavelength)
 
@@ -69,11 +65,12 @@ def calc_absorb(simulation:sim.instruments.shock_tube.shockTube,
                    ff,
                    cc,
                    wavelength:float,
-                   pathlength):
+                   pathlength,
+                   temperature):
     if ff == 'A':
-        epsilon = ((cc[1]*Temperature) + cc[0])
+        epsilon = ((cc[1]*temperature) + cc[0])
     if ff == 'B':
-        epsilon = (cc[0]*(1-(np.exp(np.true_divide(cc[1],Temperature)))))*1000
+        epsilon = (cc[0]*(1-(np.exp(np.true_divide(cc[1],temperature)))))*1000
     if ff == 'C':
         epsilon = cc[0] 
     
@@ -82,7 +79,7 @@ def calc_absorb(simulation:sim.instruments.shock_tube.shockTube,
        #multiplying by 1000 to convert from L to cm^3 from the epsilon given in paper 
        #this applies if the units on epsilon are given as they are in kappl paper 
        #must calcuate and pass in reactor volume 
-    concentration = ((np.true_divide(1,simulation.processor.solution['temperature'].as_matrix().flatten()))*(simulation.processor.solution['pressure'].as_matrix().flatten()) * (1/(8.314e6)))*simulation.processor.solution[value].as_matrix().flatten()
+    concentration = ((np.true_divide(1,temperature.flatten()*(simulation.processor.solution['pressure'].as_matrix().flatten()) * (1/(8.314e6)))*simulation.processor.solution[value].as_matrix().flatten()
     absorb = pathlength*(epsilon*concentration)
     return absorb
  
