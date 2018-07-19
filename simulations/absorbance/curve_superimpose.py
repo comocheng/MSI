@@ -3,7 +3,7 @@ import re
 
 def superimpose_shock_tube(absorbance_csv_files:list,
                            simulation:sim.instruments.shock_tube.shockTube,
-                           absorb:dict,pathLength:float,
+                           absorb:dict,pathlength:float,
                            absorbance_csv_wavelengths:list):
     '''Input:
         absorbanceCsvFiles: list of absorbance experimental data
@@ -47,9 +47,45 @@ def superimpose_shock_tube(absorbance_csv_files:list,
     APressure = {}
     ASpecies = {}
 
+    absorbance_species_wavelengths= []
+    for i in xrange(len(absorbanceSpeciesList)):
+        wavelength = flat_list[i]
+        for j in xrange(len(absorbanceSpeciesList[i])):            
+            value = absorbanceSpeciesList[i][j]
+            index = species_and_wavelengths[value].index(wavelength)
+            absorbance_species_wavelengths.append(calc_absorb(simulation,
+                                                          value,
+                                                          species_and_functional_form[value][index],
+                                                          species_and_coupled_coefficients[value][index],
+                                                          wavelength,
+                                                          pathlength),
+                                              value,
+                                              wavelength)
 
+    return absorbance_species_wavelengths
 
-
+def calc_absorb(simulation:sim.instrumnts.shock_tube.shockTube,
+                   species,
+                   ff,
+                   cc,
+                   wavelength:float,
+                   pathlength):
+    if ff == 'A':
+        epsilon = ((cc[1]*Temperature) + cc[0])
+    if ff == 'B':
+        epsilon = (cc[0]*(1-(np.exp(np.true_divide(cc[1],Temperature)))))*1000
+    if ff == 'C':
+        epsilon = cc[0] 
+    
+    if wavelength == 215: #does this really need to be here?
+       epsilon *= 1000
+       #multiplying by 1000 to convert from L to cm^3 from the epsilon given in paper 
+       #this applies if the units on epsilon are given as they are in kappl paper 
+       #must calcuate and pass in reactor volume 
+   concentration = ((np.true_divide(1,simulation.processor.solution['temperature'].as_matrix().flatten())) * (simulation.processor.solution['pressure'].as_matrix().flatten()) * (1/(8.314e6)))*simulation.processor.solution[value].as_matrix().flatten()
+   absorb = pathlength*(epsilon*concentration)
+   return absorb
+ 
 def get_wavelengths(absorb:dict):
     wavelengths = []  #get the wavelengths
     for sp in range(len(absorb['Absorption-coefficients'])):
@@ -84,7 +120,3 @@ def get_funtional(absorb:dict):
         temp = [wl['functional-form'] for wl in absorb['Absorption-coefficients'][form]['wave-lengths']]
         functional_form.append(temp)
     return functional_form
-
-        
-
- 
