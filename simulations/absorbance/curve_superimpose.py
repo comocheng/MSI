@@ -16,6 +16,14 @@ def superimpose_shock_tube(absorbance_csv_files:list,
     #print(absorbance_csv_files)
     #print(absorbance_csv_wavelengths)
     
+
+    abs_data = get_abs_data(time_history,
+                            absorb,
+                            pathlength)
+    return abs_data
+    
+def get_abs_data(time_history,absorb,pathlength):
+    
     coupled_coefficients = couple_parameters(absorb)
     if coupled_coefficients == -1:
         print("Error: could not construct coupled coefficients")
@@ -65,8 +73,8 @@ def calc_absorb(species,
                    wavelength:float,
                    pathlength,
                    time_history):
-    temperature_matrix = time_history['temperature'].as_matrix()
-    pressure_matrix = time_history['pressure'].as_matrix()
+    temperature_matrix = time_history['temperature'].values
+    pressure_matrix = time_history['pressure'].values
     if ff == 'A':
         epsilon = ((cc[1]*temperature_matrix) + cc[0])
     if ff == 'B':
@@ -79,9 +87,8 @@ def calc_absorb(species,
        #multiplying by 1000 to convert from L to cm^3 from the epsilon given in paper 
        #this applies if the units on epsilon are given as they are in kappl paper 
        #must calcuate and pass in reactor volume 
-    concentration = ((np.true_divide(1,temperature_matrix.flatten()))*(pressure_matrix.flatten()) * (1/(8.314e6)))*time_history[species].as_matrix().flatten()
+    concentration = ((np.true_divide(1,temperature_matrix.flatten()))*(pressure_matrix.flatten()) * (1/(8.314e6)))*time_history[species].values.flatten()
     
-    #((np.true_divide(1,modelDataObject.solution['temperature'].as_matrix().flatten())) * (modelDataObject.solution['pressure'].as_matrix().flatten()) * (1/(8.314e6)))*modelDataObject.solution[value].as_matrix().flatten()
     absorb = pathlength*(epsilon*concentration)
     return absorb
  
