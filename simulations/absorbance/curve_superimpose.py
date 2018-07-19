@@ -20,6 +20,7 @@ def superimpose_shock_tube(absorbance_csv_files:list,
     abs_data = get_abs_data(time_history,
                             absorb,
                             pathlength)
+
     return abs_data
     
 def get_abs_data(time_history,absorb,pathlength):
@@ -78,7 +79,7 @@ def calc_absorb(species,
     if ff == 'A':
         epsilon = ((cc[1]*temperature_matrix) + cc[0])
     if ff == 'B':
-        epsilon = (cc[0]*(1-(np.exp(np.true_divide(cc[1],temperature_matrix)))))*1000
+        epsilon = (cc[0]*(1-(np.exp(np.true_divide(cc[1],temperature_matrix)))))
     if ff == 'C':
         epsilon = cc[0] 
     
