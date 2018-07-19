@@ -64,7 +64,7 @@ def superimpose_shock_tube(absorbance_csv_files:list,
 
     return absorbance_species_wavelengths
 
-def calc_absorb(simulation:sim.instrumnts.shock_tube.shockTube,
+def calc_absorb(simulation:sim.instruments.shock_tube.shockTube,
                    species,
                    ff,
                    cc,
@@ -82,9 +82,9 @@ def calc_absorb(simulation:sim.instrumnts.shock_tube.shockTube,
        #multiplying by 1000 to convert from L to cm^3 from the epsilon given in paper 
        #this applies if the units on epsilon are given as they are in kappl paper 
        #must calcuate and pass in reactor volume 
-   concentration = ((np.true_divide(1,simulation.processor.solution['temperature'].as_matrix().flatten())) * (simulation.processor.solution['pressure'].as_matrix().flatten()) * (1/(8.314e6)))*simulation.processor.solution[value].as_matrix().flatten()
-   absorb = pathlength*(epsilon*concentration)
-   return absorb
+    concentration = ((np.true_divide(1,simulation.processor.solution['temperature'].as_matrix().flatten()))*(simulation.processor.solution['pressure'].as_matrix().flatten()) * (1/(8.314e6)))*simulation.processor.solution[value].as_matrix().flatten()
+    absorb = pathlength*(epsilon*concentration)
+    return absorb
  
 def get_wavelengths(absorb:dict):
     wavelengths = []  #get the wavelengths
