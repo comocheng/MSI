@@ -13,8 +13,8 @@ def superimpose_shock_tube(absorbance_csv_files:list,
         absorbanceCsvWavelengths: list of wavelengths absorbances were measured at, in nm
     '''
     print('Importing shock tube absorbance data the following csv files...') 
-    print(absorbance_csv_files)
-    print(absorbance_csv_wavelengths)
+    #print(absorbance_csv_files)
+    #print(absorbance_csv_wavelengths)
     
     coupled_coefficients = couple_parameters(absorb)
     if coupled_coefficients == -1:
@@ -26,9 +26,9 @@ def superimpose_shock_tube(absorbance_csv_files:list,
     #functional form takes A B C D, changes which equation used
     functional_form = get_funtional(absorb) 
     #group data by species for easier manipulation
-    species_and_wavelengths = dict(zip(species, wavelengths))
-    species_and_coupled_coefficients = dict(zip(species,coupled_coefficients))
-    species_and_functional_form = dict(zip(species,functional_form)) 
+    species_and_wavelengths = dict(list(zip(species, wavelengths)))
+    species_and_coupled_coefficients = dict(list(zip(species,coupled_coefficients)))
+    species_and_functional_form = dict(list(zip(species,functional_form))) 
     
     
 
@@ -48,14 +48,14 @@ def superimpose_shock_tube(absorbance_csv_files:list,
         for j in range(len(absorbance_species_list[i])):            
             value = absorbance_species_list[i][j]
             index = species_and_wavelengths[value].index(wavelength)
-            absorbance_species_wavelengths.append(calc_absorb(value,
+            absorbance_species_wavelengths.append((calc_absorb(value,
                                                               species_and_functional_form[value][index],
                                                               species_and_coupled_coefficients[value][index],
                                                               wavelength,
                                                               pathlength,
                                                               time_history),
                                               value,
-                                              wavelength)
+                                              wavelength))
 
     return absorbance_species_wavelengths
 
@@ -109,7 +109,7 @@ def couple_parameters(absorb:dict()):
         print("Error: number of parameters do not match, change the yaml file")
         return -1
 
-    coupled_coefficients = [zip(parameter_ones[x],parameter_twos[x]) for x in range(len(parameter_ones))]
+    coupled_coefficients = [list(zip(parameter_ones[x],parameter_twos[x]))for x in range(len(parameter_ones))]
     return coupled_coefficients 
 
 
