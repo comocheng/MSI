@@ -2,7 +2,7 @@ import itertools
 import cantera as ct
 import pandas as pd
 import numpy as np
-gas = ct.Solution('~/Downloads/FFCM1.cti')
+gas = ct.Solution('MSI/data/test_data/FFCM1.cti')
 gas.TPX = 1880, 1.74*101325, {'H2O':.013,'O2':.0099,'H':.0000007,'Ar':0.9770993}
 observables = ['OH','H2O']
 shockTube = ct.IdealGasConstPressureReactor(gas,name = 'R1',energy= 'on')
