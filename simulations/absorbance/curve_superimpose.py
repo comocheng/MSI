@@ -1,6 +1,6 @@
 import MSI.simulations as sim
 import numpy as np
-
+import matplotlib as mpl
 def superimpose_shock_tube(absorbance_csv_files:list,
                            time_history,
                            absorb:dict,pathlength:float,
@@ -20,8 +20,13 @@ def superimpose_shock_tube(absorbance_csv_files:list,
     abs_data = get_abs_data(time_history,
                             absorb,
                             pathlength)
-
-    return abs_data
+    summed_data = {} 
+    for x in abs_data:
+        if x[2] not in summed_data.keys():
+            summed_data[x[2]] = x[0]
+        else:
+            summed_data[x[2]] += x[0]
+    return summed_data
     
 def get_abs_data(time_history,absorb,pathlength):
     
