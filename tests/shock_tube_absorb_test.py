@@ -4,10 +4,11 @@ sys.path.append('.') #get rid of this at some point with central test script or 
 import MSI.simulations.instruments.shock_tube as st
 import MSI.cti_core.cti_processor as pr
 import MSI.simulations.absorbance.curve_superimpose as csp 
+import MSI.simulations.yaml_parser as yp
 import cantera as ct
 
 
-test_p = pr.Processor('MSI/data/test_data/FFCM1.cti')
+test_p = pr.Processor('MSI/data/test_data/chem.cti')
 test_tube = st.shockTube(pressure=1.74,
                          temperature=1880,
                          observables=['OH','H2O'],
@@ -23,3 +24,12 @@ test_tube = st.shockTube(pressure=1.74,
                          save_physSensHistories=1)
 
 test_tube.run()
+
+parser = yp.Parser()
+exp_loaded = parser.load_to_obj('MSI/data/test_data/Troe_6.yaml')
+abs_loaded = parser.load_to_obj('MSI/data/test_data/Troe_6_abs.yaml')
+abs_data = csp.superimpose_shock_tube([],test_tube.timeHistory,abs_loaded,30,[])
+print(abs_data)
+#loaded_tube = parser.parse_shock_tube_obj(loaded_exp=exp, loaded_absorption=absp)
+#uneeded for just testing absorbance
+
