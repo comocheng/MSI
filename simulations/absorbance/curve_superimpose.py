@@ -83,8 +83,11 @@ def calc_absorb(species,
     pressure_matrix = time_history['pressure'].values
     if ff == 'A':
         epsilon = ((cc[1]*temperature_matrix) + cc[0])
+        print(cc[1],cc[0])
+        
     if ff == 'B':
         epsilon = (cc[0]*(1-(np.exp(np.true_divide(cc[1],temperature_matrix)))))
+        print(cc[0],cc[1])
     if ff == 'C':
         epsilon = cc[0] 
     
@@ -93,7 +96,9 @@ def calc_absorb(species,
        #multiplying by 1000 to convert from L to cm^3 from the epsilon given in paper 
        #this applies if the units on epsilon are given as they are in kappl paper 
        #must calcuate and pass in reactor volume 
-    concentration = ((np.true_divide(1,temperature_matrix.flatten()))*(pressure_matrix.flatten()) * (1/(8.314e6)))*time_history[species].values.flatten()
+    concentration = np.true_divide(1,temperature_matrix.flatten())*pressure_matrix.flatten()
+    concentration *= (1/(8.314e6))*time_history[species].values.flatten()
+    
     
     absorb = pathlength*(epsilon*concentration)
     return absorb

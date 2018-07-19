@@ -8,15 +8,15 @@ import MSI.simulations.yaml_parser as yp
 import cantera as ct
 
 
-test_p = pr.Processor('MSI/data/test_data/chem.cti')
-test_tube = st.shockTube(pressure=1.74,
-                         temperature=1880,
+test_p = pr.Processor('MSI/data/test_data/optimized_burke.cti')
+test_tube = st.shockTube(pressure=3.44187,
+                         temperature=1079,
                          observables=['OH','H2O'],
                          kineticSens=1,
                          physicalSens=0,
-                         conditions={'H2O':.013,'O2':.0099,'H':.0000007,'Ar':0.9770993},
+                         conditions={'H2O2':0.00195373,'Ar':0.99804627},
                          initialTime=0,
-                         finalTime=0.5,
+                         finalTime=0.0014,
                          thermalBoundary='Adiabatic',
                          mechanicalBoundary='constant pressure',
                          processor=test_p,
@@ -30,6 +30,10 @@ exp_loaded = parser.load_to_obj('MSI/data/test_data/Troe_6.yaml')
 abs_loaded = parser.load_to_obj('MSI/data/test_data/Troe_6_abs.yaml')
 abs_data = csp.superimpose_shock_tube([],test_tube.timeHistory,abs_loaded,30,[])
 print(abs_data)
+import matplotlib.pyplot as plt
+plt.plot(test_tube.timeHistories[0]['time']*1000,abs_data[215])
+plt.axis([.01,1.4,0,.35])
+#plt.plot(test_tube.timeHistories[0]['time'],test_tube.timeHistories[0]['time'])
 #loaded_tube = parser.parse_shock_tube_obj(loaded_exp=exp, loaded_absorption=absp)
 #uneeded for just testing absorbance
 
