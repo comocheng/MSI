@@ -92,7 +92,7 @@ def calc_abs_sens(simulation,
                   absorbance_species_wavelengths,
                   pathlength,
                   summed_data):
-    net_sum = np.ndarray(shape=())
+    net_sum = np.ndarray(shape=(simulation.kineticSensitivities.shape[0:2])) #only need 2d info, since sum over observables
     species_and_sensitivities = dict(list(zip(simulation.observables,simulation.kineticSensitivities)))
     temperature_matrix = simulation.timeHistories[0]['temperature'].values
     pressure_matrix = simulation.timeHistories[0]['pressure'].values
@@ -121,9 +121,8 @@ def calc_abs_sens(simulation,
         concentration = np.true_divide(1,temperature_matrix.flatten())*pressure_matrix.flatten()
         concentration *= (1/(8.314e6))*simulation.timeHistories[0][species].values.flatten()
         
-        net_sum += epsilon*concentration*species_and_sensitivities[species]
+        net_sum+=epsilon*concentration*species_and_sensitivities[species]
      
-    print(net_sum) 
 
     return net_sum/summed_data
 
