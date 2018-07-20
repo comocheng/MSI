@@ -1,10 +1,11 @@
 import MSI.simulations as sim
 import numpy as np
 import matplotlib as mpl
-def superimpose_shock_tube(absorbance_csv_files:list,
-                           time_history,
+def superimpose_shock_tube(simulation:sim.instruments.shock_tube.shockTube,
                            absorb:dict,pathlength:float,
-                           absorbance_csv_wavelengths:list):
+                           absorbance_csv_files:list=[],
+                           absorbance_csv_wavelengths:list=[],
+                           kinetic_sens=0):
     '''Input:
         absorbanceCsvFiles: list of absorbance experimental data
         time_history: time history from some run used to get temperature matrix
@@ -16,19 +17,13 @@ def superimpose_shock_tube(absorbance_csv_files:list,
     #print(absorbance_csv_files)
     #print(absorbance_csv_wavelengths)
     
-
-    abs_data = get_abs_data(time_history,
-                            absorb,
-                            pathlength)
-    summed_data = {} 
-    for x in abs_data:
-        if x[2] not in summed_data.keys():
-            summed_data[x[2]] = x[0]
-        else:
-            summed_data[x[2]] += x[0]
-    return summed_data
     
-def get_abs_data(time_history,absorb,pathlength):
+    abs_data = get_abs_data(simulation,
+                            absorb,
+                            pathlength,
+                            kinetic_sens)
+    return abs_data 
+def get_abs_data(simulation,absorb,pathlength,kinetic_sens = 0):
     
     coupled_coefficients = couple_parameters(absorb)
     if coupled_coefficients == -1:
@@ -67,11 +62,71 @@ def get_abs_data(time_history,absorb,pathlength):
                                                               species_and_coupled_coefficients[value][index],
                                                               wavelength,
                                                               pathlength,
-                                                              time_history),
+                                                              simulation.timeHistories[0]),
                                               value,
                                               wavelength))
 
-    return absorbance_species_wavelengths
+    
+    summed_data = {} 
+    for x in absorbance_species_wavelengths:
+        if x[2] not in summed_data.keys():
+            summed_data[x[2]] = x[0]
+        else:
+            summed_data[x[2]] += x[0]
+        
+    if kinetic_sens == 0:
+        return summed_data
+    else:
+        return summed_data, calc_abs_sens(simulation, 
+                                          species_and_wavelengths,
+                                          species_and_functional_form,
+                                          species_and_coupled_coefficients,
+                                          absorbance_species_wavelengths,
+                                          pathlength,
+                                          summed_data)
+
+def calc_abs_sens(simulation,
+                  species_and_wavelengths,
+                  species_and_functional_form,
+                  species_and_coupled_coefficients,
+                  absorbance_species_wavelengths,
+                  pathlength,
+                  summed_data):
+    net_sum = np.ndarray(shape=())
+    species_and_sensitivities = dict(list(zip(simulation.observables,simulation.kineticSensitivities)))
+    temperature_matrix = simulation.timeHistories[0]['temperature'].values
+    pressure_matrix = simulation.timeHistories[0]['pressure'].values
+
+    for species in species_and_sensitivities.keys():
+        if species not in species_and_wavelengths.keys():
+            continue
+        #do epsilon and con calc, then mult
+        wavelength = species_and_wavelengths[species]
+        index = species_and_wavelengths[species].index(wavelength)
+        cc = species_and_coupled_coefficients[species][index]
+        ff = species_and_functional_form[species][index]
+        if ff == 'A':
+            epsilon = ((cc[1]*temperature_matrix) + cc[0])
+            print(cc[1],cc[0])
+            
+        if ff == 'B':
+            epsilon = (cc[0]*(1-(np.exp(np.true_divide(cc[1],temperature_matrix)))))
+            print(cc[0],cc[1])
+        if ff == 'C':
+            epsilon = cc[0] 
+        
+        if wavelength == 215: #does this really need to be here, takes care of specific paper case?
+           epsilon *= 1000
+        
+        concentration = np.true_divide(1,temperature_matrix.flatten())*pressure_matrix.flatten()
+        concentration *= (1/(8.314e6))*simulation.timeHistories[0][species].values.flatten()
+        
+        net_sum += epsilon*concentration*species_and_sensitivities[species]
+     
+    print(net_sum) 
+
+    return net_sum/summed_data
+
 
 def calc_absorb(species,
                    ff,
