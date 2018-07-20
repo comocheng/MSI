@@ -91,7 +91,7 @@ def calc_abs_sens(simulation,
                   species_and_coupled_coefficients,
                   absorbance_species_wavelengths,
                   pathlength,
-                  summed_data):
+                  summed_absorbtion):
     net_sum = np.ndarray(shape=(simulation.kineticSensitivities.shape[0:2])) #only need 2d info, since sum over observables
     species_and_sensitivities = dict(list(zip(simulation.observables,simulation.kineticSensitivities)))
     temperature_matrix = simulation.timeHistories[0]['temperature'].values
@@ -107,11 +107,8 @@ def calc_abs_sens(simulation,
         ff = species_and_functional_form[species][index]
         if ff == 'A':
             epsilon = ((cc[1]*temperature_matrix) + cc[0])
-            print(cc[1],cc[0])
-            
         if ff == 'B':
             epsilon = (cc[0]*(1-(np.exp(np.true_divide(cc[1],temperature_matrix)))))
-            print(cc[0],cc[1])
         if ff == 'C':
             epsilon = cc[0] 
         
@@ -122,26 +119,27 @@ def calc_abs_sens(simulation,
         concentration *= (1/(8.314e6))*simulation.timeHistories[0][species].values.flatten()
         
         net_sum+=epsilon*concentration*species_and_sensitivities[species]
-     
-
-    return net_sum/summed_data
+    
+    flat_list = np.array(list(summed_absorbtion.values()))
+    for i in range(0,len(flat_list)):
+        flat_list[i] = 1/flat_list[i]
+    for column in net_sum.T:
+        column*=flat_list.flatten()
+    return net_sum
 
 
 def calc_absorb(species,
-                   ff,
-                   cc,
-                   wavelength:float,
-                   pathlength,
-                   time_history):
+                ff,
+                cc,
+                wavelength,
+                pathlength,
+                time_history):
     temperature_matrix = time_history['temperature'].values
     pressure_matrix = time_history['pressure'].values
     if ff == 'A':
         epsilon = ((cc[1]*temperature_matrix) + cc[0])
-        print(cc[1],cc[0])
-        
     if ff == 'B':
         epsilon = (cc[0]*(1-(np.exp(np.true_divide(cc[1],temperature_matrix)))))
-        print(cc[0],cc[1])
     if ff == 'C':
         epsilon = cc[0] 
     
