@@ -109,17 +109,11 @@ def calc_abs_sens(simulation,
         wavelengths = species_and_wavelengths[species]
         
         for j in range(0,len(wavelengths)):
-             
             wavelength = species_and_wavelengths[species][j] 
             if wavelength not in ind_wl_derivs.keys():
-                ind_wl_derivs[wavelength] = []
-
-            if len(ind_wl_derivs[wavelength]) == 0:
                 net_sum = np.zeros(shape=(simulation.kineticSensitivities.shape[0:2])) #only need 2d info, since sum over observables
-                ind_wl_derivs[wavelength]=net_sum
             else:
                 net_sum = ind_wl_derivs[wavelength]
-            print(wavelength)
             index = species_and_wavelengths[species].index(wavelength)
             cc = species_and_coupled_coefficients[species][index]
             print(cc)
