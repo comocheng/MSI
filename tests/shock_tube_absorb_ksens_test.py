@@ -11,7 +11,7 @@ import cantera as ct
 test_p = pr.Processor('MSI/data/test_data/optimized_burke.cti')
 test_tube = st.shockTube(pressure=3.44187,
                          temperature=1079,
-                         observables=['OH','H2O'],
+                         observables=['H2O2','HO2','O2'],
                          kineticSens=1,
                          physicalSens=0,
                          conditions={'H2O2':0.00195373,'Ar':0.99804627},

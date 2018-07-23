@@ -92,40 +92,63 @@ def calc_abs_sens(simulation,
                   absorbance_species_wavelengths,
                   pathlength,
                   summed_absorbtion):
-    net_sum = np.ndarray(shape=(simulation.kineticSensitivities.shape[0:2])) #only need 2d info, since sum over observables
-    species_and_sensitivities = dict(list(zip(simulation.observables,simulation.kineticSensitivities)))
+    species_and_sensitivities = {}
+    for x,i in enumerate(simulation.observables):
+        slice_2d = simulation.kineticSensitivities[:,:,x]
+        species_and_sensitivities[i]=slice_2d
     temperature_matrix = simulation.timeHistories[0]['temperature'].values
     pressure_matrix = simulation.timeHistories[0]['pressure'].values
 
+    print("WHAT-",species_and_wavelengths)
+    ind_wl_derivs = {} 
     for species in species_and_sensitivities.keys():
         if species not in species_and_wavelengths.keys():
             continue
         #do epsilon and con calc, then mult
-        wavelength = species_and_wavelengths[species]
-        index = species_and_wavelengths[species].index(wavelength)
-        cc = species_and_coupled_coefficients[species][index]
-        ff = species_and_functional_form[species][index]
-        if ff == 'A':
-            epsilon = ((cc[1]*temperature_matrix) + cc[0])
-        if ff == 'B':
-            epsilon = (cc[0]*(1-(np.exp(np.true_divide(cc[1],temperature_matrix)))))
-        if ff == 'C':
-            epsilon = cc[0] 
+        print(species)
+        wavelengths = species_and_wavelengths[species]
         
-        if wavelength == 215: #does this really need to be here, takes care of specific paper case?
-           epsilon *= 1000
-        
-        concentration = np.true_divide(1,temperature_matrix.flatten())*pressure_matrix.flatten()
-        concentration *= (1/(8.314e6))*simulation.timeHistories[0][species].values.flatten()
-        
-        net_sum+=epsilon*concentration*species_and_sensitivities[species]
+        for j in range(0,len(wavelengths)):
+             
+            wavelength = species_and_wavelengths[species][j] 
+            if wavelength not in ind_wl_derivs.keys():
+                ind_wl_derivs[wavelength] = []
+
+            if len(ind_wl_derivs[wavelength]) == 0:
+                net_sum = np.zeros(shape=(simulation.kineticSensitivities.shape[0:2])) #only need 2d info, since sum over observables
+                ind_wl_derivs[wavelength].append(net_sum)
+            else:
+                net_sum = ind_wl_derivs[wavelength]
+            print(wavelength)
+            index = species_and_wavelengths[species].index(wavelength)
+            cc = species_and_coupled_coefficients[species][index]
+            print(cc)
+            ff = species_and_functional_form[species][index]
+            if ff == 'A':
+                epsilon = ((cc[1]*temperature_matrix) + cc[0])
+            if ff == 'B':
+                epsilon = (cc[0]*(1-(np.exp(np.true_divide(cc[1],temperature_matrix)))))
+            if ff == 'C':
+                epsilon = cc[0] 
+            
+            if wavelength == 215: #does this really need to be here, takes care of specific paper case?
+               epsilon *= 1000
+            
+            concentration = np.true_divide(1,temperature_matrix.flatten())*pressure_matrix.flatten()
+            concentration *= (1/(8.314e6))*simulation.timeHistories[0][species].values.flatten()
+            temp = np.multiply(species_and_sensitivities[species],concentration.reshape((np.shape(concentration)[0],1)))
+            net_sum += np.multiply(temp,epsilon.reshape((np.shape(epsilon)[0],1)))
+            
+            ind_wl_derivs[wavelength]=net_sum
     
-    flat_list = np.array(list(summed_absorbtion.values()))
-    for i in range(0,len(flat_list)):
-        flat_list[i] = 1/flat_list[i]
-    for column in net_sum.T:
-        column*=flat_list.flatten()
-    return net_sum
+    for single_wl in ind_wl_derivs.keys():
+        flat_list = np.array(list(summed_absorbtion[single_wl]))
+        for i in range(0,len(flat_list)):
+            flat_list[i] = 1/flat_list[i]
+        for column in ind_wl_derivs[single_wl].T:
+            column*=flat_list.flatten()
+    
+    return ind_wl_derivs
 
 
 def calc_absorb(species,
