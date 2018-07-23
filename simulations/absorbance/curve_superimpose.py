@@ -116,7 +116,7 @@ def calc_abs_sens(simulation,
 
             if len(ind_wl_derivs[wavelength]) == 0:
                 net_sum = np.zeros(shape=(simulation.kineticSensitivities.shape[0:2])) #only need 2d info, since sum over observables
-                ind_wl_derivs[wavelength].append(net_sum)
+                ind_wl_derivs[wavelength]=net_sum
             else:
                 net_sum = ind_wl_derivs[wavelength]
             print(wavelength)
