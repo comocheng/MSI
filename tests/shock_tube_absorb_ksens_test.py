@@ -24,10 +24,14 @@ test_tube = st.shockTube(pressure=3.44187,
                          save_physSensHistories=1)
 
 test_tube.run()
-
+abs_instance = csp.Absorb()
 parser = yp.Parser()
 exp_loaded = parser.load_to_obj('MSI/data/test_data/Troe_6.yaml')
 abs_loaded = parser.load_to_obj('MSI/data/test_data/Troe_6_abs.yaml')
-abs_data = csp.superimpose_shock_tube(test_tube,abs_loaded,30,kinetic_sens=1)
-print(abs_data[1])
-
+abs_data = abs_instance.superimpose_shock_tube(test_tube,abs_loaded,30,kinetic_sens=1)
+perturbed_data = abs_instance.perturb_abs(.01,
+                                          test_tube,
+                                          abs_loaded,30,
+                                          kinetic_sens=1)
+print("UNPERTURBED ABSORBTION DATA:",abs_data[0])
+print("PERTURBED DATA:", perturbed_data[0])
