@@ -9,7 +9,8 @@ class Absorb:
                     absorb:dict,pathlength:float,
                     absorbance_csv_files:list=[],
                     absorbance_csv_wavelengths:list=[],
-                    kinetic_sens=0):
+                    summed_data = None,
+                    dk = .01):
 
         #modify absorb dict, modify each coef
         #remember to put it back
@@ -20,27 +21,38 @@ class Absorb:
         species = [species['species'] for species in absorb['Absorption-coefficients']]
         species_and_coupled_coefficients = dict(list(zip(species,coupled_coefficients)))
         species_and_wavelengths = dict(list(zip(species, self.get_wavelengths(absorb))))
-        for species in species_and_coupled_coefficients.keys():
+        for species in species_and_coupled_coefficients.items():
             index = 0
-            for cc in species_and_coupled_coefficients[species]:
-                orig_cc = cc
+            for i in range(0,len(species_and_coupled_coefficients[species])):
+                orig_cc = species_and_coupled_coefficients[species][i]
                 
-                cc = (cc[0]+del_param,cc[1])
+                cc = (orig_cc[0]+del_param,orig_cc[1])
+                species_and_coupled_coefficients[species][i] = cc
                 changed_data = self.get_abs_data(simulation,
                                                  absorb,
                                                  pathlength,
-                                                 kinetic_sens = 1)
-                self.saved_perturb_data.append(((cc,species,species_and_wavelengths[species][index]),
-                                                changed_data))
-                
+                                                 kinetic_sens = 0)
+                if summed_data is None:
+                    self.saved_perturb_data.append(((species,species_and_wavelengths[species][index],cc),
+                                                    changed_data))
+                else:                                
+                    self.saved_perturb_data.append(((species,species_and_wavelengths[species][index],cc),
+                                                    changed_data,
+                                                    self.ln_abs(changed_data,summed_data,dk)))
                 cc = (orig_cc[0],cc[1]+del_param)
+                species_and_coupled_coefficients[i] = cc
                 changed_data = self.get_abs_data(simulation,
                                                  absorb,
                                                  pathlength,
-                                                 kinetic_sens = 1)
-                self.saved_perturb_data.append(((species,species_and_wavelengths[species][index],cc),
-                                                changed_data))
-                cc = orig_cc
+                                                 kinetic_sens = 0)
+                if summed_data is None:
+                    self.saved_perturb_data.append(((species,species_and_wavelengths[species][index],cc),
+                                                    changed_data))
+                else:                                
+                    self.saved_perturb_data.append(((species,species_and_wavelengths[species][index],cc),
+                                                    changed_data,
+                                                    self.ln_abs(changed_data,summed_data,dk)))
+                species_and_coupled_coefficients[species][i] = orig_cc
                 index += 1
         return self.saved_perturb_data
     
@@ -68,7 +80,39 @@ class Absorb:
         self.saved_abs_data.append(abs_data)
         return abs_data 
     
-    def get_abs_data(self,simulation,absorb,pathlength,kinetic_sens = 0):
+    def absorb_phys_sensitivities(self,simulation:sim.instruments.shock_tube.shockTube,
+                                  summed_data:dict,
+                                  absorb:dict,
+                                  pathlength:float,
+                                  dk:float=.01):
+        if len(simulation.timeHistories) < 2:
+            print("Error: must have perturbed time histories to interpolate against")
+            return -1
+
+        interpolated_times = simulation.interpolate_range(0,len(simulation.timeHistories))
+        summed_interp_abs = []
+        for interp_time in interpolated_times:
+            summed_interp_abs.append(self.get_abs_data(simulation,
+                                     absorb,
+                                     pathlength,
+                                     time_history=interp_time)) 
+        
+        ln_abs = []
+        for int_abs_data in summed_interp_abs:
+            ln_abs.append(self.ln_abs(int_abs_data,summed_data,dk)) 
+        
+        return summed_interp_abs
+    
+    def ln_abs(self,changed_data,orig_data,dk):
+        temp = []
+        for key in orig_data.keys():
+            for i in range(0,len(orig_data[key])):
+                temp.append((np.log(changed_data[key][i]) - np.log(orig_data[key][i]))/dk) 
+        return temp 
+
+
+    
+    def get_abs_data(self, simulation, absorb,pathlength, kinetic_sens = 0,time_history=None):
         
         coupled_coefficients = self.couple_parameters(absorb)
         if coupled_coefficients == -1:
@@ -104,7 +148,7 @@ class Absorb:
                                                                   species_and_coupled_coefficients[value][index],
                                                                   wavelength,
                                                                   pathlength,
-                                                                  simulation.timeHistories[0]),
+                                                                  simulation.timeHistories[0] if time_history is None else time_history),
                                                        value,
                                                        wavelength))
 
@@ -246,3 +290,4 @@ class Absorb:
             temp = [wl['functional-form'] for wl in absorb['Absorption-coefficients'][form]['wave-lengths']]
             functional_form.append(temp)
         return functional_form
+
