@@ -21,7 +21,8 @@ class Absorb:
         species = [species['species'] for species in absorb['Absorption-coefficients']]
         species_and_coupled_coefficients = dict(list(zip(species,coupled_coefficients)))
         species_and_wavelengths = dict(list(zip(species, self.get_wavelengths(absorb))))
-        for species in species_and_coupled_coefficients.items():
+        
+        for species in list(species_and_coupled_coefficients):
             index = 0
             for i in range(0,len(species_and_coupled_coefficients[species])):
                 orig_cc = species_and_coupled_coefficients[species][i]
@@ -31,7 +32,8 @@ class Absorb:
                 changed_data = self.get_abs_data(simulation,
                                                  absorb,
                                                  pathlength,
-                                                 kinetic_sens = 0)
+                                                 kinetic_sens = 0,
+                                                 pert_spec_coef = species_and_coupled_coefficients)
                 if summed_data is None:
                     self.saved_perturb_data.append(((species,species_and_wavelengths[species][index],cc),
                                                     changed_data))
@@ -44,7 +46,8 @@ class Absorb:
                 changed_data = self.get_abs_data(simulation,
                                                  absorb,
                                                  pathlength,
-                                                 kinetic_sens = 0)
+                                                 kinetic_sens = 0,
+                                                 pert_spec_coef = species_and_coupled_coefficients)
                 if summed_data is None:
                     self.saved_perturb_data.append(((species,species_and_wavelengths[species][index],cc),
                                                     changed_data))
@@ -112,7 +115,7 @@ class Absorb:
 
 
     
-    def get_abs_data(self, simulation, absorb,pathlength, kinetic_sens = 0,time_history=None):
+    def get_abs_data(self, simulation, absorb,pathlength, kinetic_sens = 0,time_history=None, pert_spec_coef=None):
         
         coupled_coefficients = self.couple_parameters(absorb)
         if coupled_coefficients == -1:
@@ -125,7 +128,7 @@ class Absorb:
         functional_form = self.get_functional(absorb) 
         #group data by species for easier manipulation
         species_and_wavelengths = dict(list(zip(species, wavelengths)))
-        species_and_coupled_coefficients = dict(list(zip(species,coupled_coefficients)))
+        species_and_coupled_coefficients = dict(list(zip(species,coupled_coefficients))) if pert_spec_coef is None else pert_spec_coef
         species_and_functional_form = dict(list(zip(species,functional_form))) 
         
         flat_list = [item for sublist in wavelengths for item in sublist]
