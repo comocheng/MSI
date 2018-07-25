@@ -1,11 +1,12 @@
 import MSI.simulations as sim
 import numpy as np
+import pandas as pd
 
 class Absorb:
     def __init__(self):
         self.saved_abs_data = []
         self.saved_perturb_data = [] 
-    def perturb_abs(self,del_param:float,simulation:sim.instruments.shock_tube.shockTube,
+    def perturb_abs_coef(self,del_param:float,simulation:sim.instruments.shock_tube.shockTube,
                     absorb:dict,pathlength:float,
                     absorbance_csv_files:list=[],
                     absorbance_csv_wavelengths:list=[],
@@ -61,19 +62,13 @@ class Absorb:
     
     def superimpose_shock_tube(self,simulation:sim.instruments.shock_tube.shockTube,
                                absorb:dict,pathlength:float,
-                               absorbance_csv_files:list=[],
-                               absorbance_csv_wavelengths:list=[],
                                kinetic_sens=0):
         '''Input:
-            absorbanceCsvFiles: list of absorbance experimental data
             time_history: time history from some run used to get temperature matrix
             absorb: dict of yaml parsed absorbance data ie yaml_parser.parse_shock_tube_obj was run
             pathLenth: diameter of shock tube, integer
             absorbanceCsvWavelengths: list of wavelengths absorbances were measured at, in nm
         '''
-        print('Importing shock tube absorbance data the following csv files...') 
-        #print(absorbance_csv_files)
-        #print(absorbance_csv_wavelengths)
         
         
         abs_data = self.get_abs_data(simulation,
@@ -113,7 +108,60 @@ class Absorb:
                 temp.append((np.log(changed_data[key][i]) - np.log(orig_data[key][i]))/dk) 
         return temp 
 
+    def interpolate_experimental(self, simulation, experimental_data, 
+                                 original_summed_absorption=None,
+                                 abs_kinetic_sens=None,
+                                 abs_phys_sens=None,
+                                 abs_coef_sens=None):
+        if original_summed_absorption is None and abs_kinetic_sens is None and absorbance_phys_sens is None and abs_coef_sens is None:
+            print("Error: must give something to interpolate")
+            return -1
+        #each absorbance already against the original time history
+        interp_original = {}
+        interp_abs_kinetic_sens = {}
+        interp_abs_phys_sens = {}
+        interp_abs_coef_sens = {}
+        
+        #then interpolate that against each experimental file
+	#loop over each experimental wavelength
+            
+	for time_absorb in experimental_data:
+            if original_summed_absorption is not None:
+                #get the wavelength of the csv file and match to the dict entry
+                wavelength = int(time_absorb.columns.values[1].split("_")[1])
+                data_to_interpolate = original_summed_absorption[wavelength]
+                #construct dataframe for the interpolation using the OG time history
+		temp = {'time':simulation.timeHistories[0],wavelength:data_to_interpolate}
+                frame_to_interp = pd.DataFrame(data=temp)
+		print(frame_to_interp)
+        
+    def interpolation(self,originalValues,newValues, thingBeingInterpolated):   
+        #interpolating time histories to original time history 
+        if isinstance(originalValues,pd.DataFrame) and isinstance(newValues,pd.DataFrame):
+            tempDfForInterpolation = newValues[thingBeingInterpolated]
+            tempListForInterpolation = [tempDfForInterpolation.ix[:,x].values for x in range(tempDfForInterpolation.shape[1])]
+            interpolatedData = [np.interp(originalValues['time'].values,newValues['time'].values,tempListForInterpolation[x]) for x in range(len(tempListForInterpolation))]
+            interpolatedData = [pd.DataFrame(interpolatedData[x]) for x in range(len(interpolatedData))]
+            interpolatedData = pd.concat(interpolatedData, axis=1,ignore_index=True)
+            interpolatedData.columns = thingBeingInterpolated
+        else:
+            print("Error: values must be pandas dataframes")
+            return -1
+        return interpolatedData
 
+   
+    def import_experimental_data(self, absorbance_csv_files:list=[]): 
+        if len(absorbance_csv_files) == 0:
+            print("Error: please give at least 1 experimental absorbance file")
+            return -1
+        print('Importing shock tube absorbance data the following csv files...') 
+        print(absorbance_csv_files)
+        
+        experimental_data = [pd.read_csv(csv) for csv in absorbance_csv_files]
+        experimental_data = [experimental_data[x].dropna(how='any') for x in range(len(experimental_data))]
+        experimental_data = [experimental_data[x].apply(pd.to_numeric, errors = 'coerce').dropna() for x in range(len(experimental_data))]
+        self.experimental_data = experimental_data
+        return experimental_data   
     
     def get_abs_data(self, simulation, absorb,pathlength, kinetic_sens = 0,time_history=None, pert_spec_coef=None):
         
@@ -180,7 +228,7 @@ class Absorb:
                       species_and_coupled_coefficients,
                       absorbance_species_wavelengths,
                       pathlength,
-                      summed_absorbtion):
+                      summed_absorption):
         species_and_sensitivities = {}
         for x,i in enumerate(simulation.observables):
             slice_2d = simulation.kineticSensitivities[:,:,x]
@@ -222,7 +270,7 @@ class Absorb:
                 ind_wl_derivs[wavelength]=net_sum
         
         for single_wl in ind_wl_derivs.keys():
-            flat_list = np.array(list(summed_absorbtion[single_wl]))
+            flat_list = np.array(list(summed_absorption[single_wl]))
             for i in range(0,len(flat_list)):
                 flat_list[i] = 1/flat_list[i]
             for column in ind_wl_derivs[single_wl].T:

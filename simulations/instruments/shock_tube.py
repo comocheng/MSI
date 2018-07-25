@@ -189,12 +189,22 @@ class shockTube(sim.Simulation):
     #interpolate the most recent time history against the oldest by default
     #working_data used if have list not pandas frame
     #return more data about what was interpolated in a tuple?
-    def interpolate_time(self,index:int=-1):
+    def interpolate_time(self,index:int=None,time_history=None):
         if self.timeHistories == None:
             print("Error: this simulation is not saving time histories, reinitialize with flag")
             return -1
         else:
-            return self.interpolation(self.timeHistories[0],self.timeHistories[index],self.observables)
+            if index is not None and time_history is not None:
+                print("Error: can only specify one of index, time_history")
+                return -1
+            if index is None:
+                index = -1
+            
+            if time_history is None:
+                return self.interpolation(self.timeHistories[0],self.timeHistories[index],["temperature","pressure"]+self.observables)
+            else:
+                return self.interpolation(self.timeHistories[0],time_history,["temperature","pressure"]+self.observables)
+            
     #assumes most recent time histories are the correct ones to interpolate on
     #interpolates agains the original time history
     def interpolate_species_adjustment(self):
@@ -208,22 +218,23 @@ class shockTube(sim.Simulation):
     
     #interpolate a range of time histories agains the original
     #possibly add experimental flag to do range with exp data
+    #end is exclusive
     def interpolate_range(self,begin:int,end:int):
-        if begin<0 or end>= len(self.timeHistories):
+        if begin<0 or end>len(self.timeHistories):
             print("Error: invalid indices")
         if self.timeHistories == None:
             print("Error: simulation is not saving time histories")
 
         interpolated_data = []
-        for x in range(begin,end+1):
-            interpolated_data.append(interpolate_time(index=x))
+        for x in range(begin,end):
+            interpolated_data.append(self.interpolate_time(index=x))
         return interpolated_data
         
     #interpolates agains the original time history
     def interpolate_physical_sensitivities(self):
         interpolated_time = self.interpolate_time()
         sensitivity = self.sensitivityCalculation(self.timeHistories[0][self.observables],
-                                                  interpolated_time,self.observables)
+                                                  interpolated_time,["temperature","pressure"]+self.observables)
         if self.physSensHistories != None:
             self.physSensHistories.append(sensitivity)
         return sensitivity
