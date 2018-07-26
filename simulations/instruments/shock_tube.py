@@ -312,7 +312,7 @@ class shockTube(sim.Simulation):
                 if arr.shape[0] < max_size:
                     padded_arrays.append(np.pad(arr,
                                         ((0,max_size - arr.shape[0]),(0,0)),
-                                        'constant',constant_values=-1))
+                                        'constant',constant_values=np.nan))
                 else:
                     padded_arrays.append(arr)
             np_array = np.hstack((padded_arrays))
@@ -321,7 +321,7 @@ class shockTube(sim.Simulation):
         
         for x in int_exp:
             x.columns = self.observables
-            x[x<0] = np.nan
+            #x[x<0] = np.nan
         if single is not  None:
             return int_exp[0]
         else:
