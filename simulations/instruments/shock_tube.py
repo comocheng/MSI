@@ -281,15 +281,19 @@ class shockTube(sim.Simulation):
    
     def map_and_interp_ksens(self,time_history=None):
         A = self.kineticSensitivities
-        N = self.kineticSensitivities
+        N = np.zeros(A.shape)
         Ea = self.kineticSensitivities
-        for sheetN in N:
-            print("SHAPE:",sheetN.shape)
-            for column in sheetN.T:
-                column = column*np.log(self.timeHistories[0]['time']) if time_history is None else column*np.log(time_history)
-        
-        print("A CHECK:",A)
-        print("N CHECK:",N)
+        for i in range(0,N.shape[2]):
+            sheetN = N[:,:,i] #sheet for specific observable
+            temp_sheet = np.zeros(sheetN.shape)
+            for x,column in enumerate(sheetN.T):
+                column = np.multiply(column,np.log(self.timeHistories[0]['temperature'])) if time_history is None else np.multiply(column,np.log(time_history['temperature']))
+                temp_sheet[:,x] = column
+                #print(np.array_equal(temp_sheet[:,x],A[:,x,i]))
+            N[:,:,i] = temp_sheet 
+            print("TEMP:",temp_sheet)
+        print("A:",A)
+        print("N:",N)
         return [self.interpolate_experimental_kinetic(A),
                self.interpolate_experimental_kinetic(N),
                self.interpolate_experimental_kinetic(Ea)]
