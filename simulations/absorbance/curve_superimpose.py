@@ -35,13 +35,14 @@ class Absorb:
                                                  pathlength,
                                                  kinetic_sens = 0,
                                                  pert_spec_coef = species_and_coupled_coefficients)
+                #changed_data is a dict, keys are wavelengths, values are absorbances
                 if summed_data is None:
-                    self.saved_perturb_data.append(((species,species_and_wavelengths[species][index],cc),
-                                                    changed_data))
+                    self.saved_perturb_data.append([(species,species_and_wavelengths[species][index],cc),
+                                                    changed_data])
                 else:                                
-                    self.saved_perturb_data.append(((species,species_and_wavelengths[species][index],cc),
-                                                    changed_data,
-                                                    self.ln_abs(changed_data,summed_data,dk)))
+                    self.saved_perturb_data.append([(species,species_and_wavelengths[species][index],cc),
+                                                    self.ln_abs(changed_data,summed_data,dk)])
+                
                 cc = (orig_cc[0],cc[1]+del_param)
                 species_and_coupled_coefficients[i] = cc
                 changed_data = self.get_abs_data(simulation,
@@ -50,12 +51,11 @@ class Absorb:
                                                  kinetic_sens = 0,
                                                  pert_spec_coef = species_and_coupled_coefficients)
                 if summed_data is None:
-                    self.saved_perturb_data.append(((species,species_and_wavelengths[species][index],cc),
-                                                    changed_data))
+                    self.saved_perturb_data.append([(species,species_and_wavelengths[species][index],cc),
+                                                    changed_data])
                 else:                                
-                    self.saved_perturb_data.append(((species,species_and_wavelengths[species][index],cc),
-                                                    changed_data,
-                                                    self.ln_abs(changed_data,summed_data,dk)))
+                    self.saved_perturb_data.append([(species,species_and_wavelengths[species][index],cc),
+                                                    self.ln_abs(changed_data,summed_data,dk)])
                 species_and_coupled_coefficients[species][i] = orig_cc
                 index += 1
         return self.saved_perturb_data
@@ -103,10 +103,13 @@ class Absorb:
     
     def ln_abs(self,changed_data,orig_data,dk):
         temp = []
+        ln_dict = {}
         for key in orig_data.keys():
+            temp.clear()
             for i in range(0,len(orig_data[key])):
                 temp.append((np.log(changed_data[key][i]) - np.log(orig_data[key][i]))/dk) 
-        return temp 
+            ln_dict[key] = temp
+        return ln_dict
 
     def interpolate_experimental(self, simulation, experimental_data, 
                                  original_summed_absorption=None,
@@ -119,37 +122,60 @@ class Absorb:
         #each absorbance already against the original time history
         interp_original = {}
         interp_abs_kinetic_sens = {}
-        interp_abs_phys_sens = {}
-        interp_abs_coef_sens = {}
+        interp_abs_phys_sens = []
+        interp_abs_coef_sens = []
         
         #then interpolate that against each experimental file
 	#loop over each experimental wavelength
-            
-	for time_absorb in experimental_data:
+        #and set up the abs_phys interp dict if needed
+        if abs_phys_sens is not None:
+            for i in range(0,len(abs_phys_sens)):
+                interp_abs_phys_sens.append({})
+        #fill the abs_coef_sens interp with tuples beforehand
+        #to avoid indexes not existing in the list in the later loop
+        if abs_coef_sens is not None:
+            for i in range(0,len(abs_coef_sens)):
+                interp_abs_coef_sens.append([abs_coef_sens[i][0],{}])
+        for time_absorb in experimental_data:
             if original_summed_absorption is not None:
                 #get the wavelength of the csv file and match to the dict entry
                 wavelength = int(time_absorb.columns.values[1].split("_")[1])
                 data_to_interpolate = original_summed_absorption[wavelength]
                 #construct dataframe for the interpolation using the OG time history
-		temp = {'time':simulation.timeHistories[0],wavelength:data_to_interpolate}
-                frame_to_interp = pd.DataFrame(data=temp)
-		print(frame_to_interp)
-        
-    def interpolation(self,originalValues,newValues, thingBeingInterpolated):   
-        #interpolating time histories to original time history 
-        if isinstance(originalValues,pd.DataFrame) and isinstance(newValues,pd.DataFrame):
-            tempDfForInterpolation = newValues[thingBeingInterpolated]
-            tempListForInterpolation = [tempDfForInterpolation.ix[:,x].values for x in range(tempDfForInterpolation.shape[1])]
-            interpolatedData = [np.interp(originalValues['time'].values,newValues['time'].values,tempListForInterpolation[x]) for x in range(len(tempListForInterpolation))]
-            interpolatedData = [pd.DataFrame(interpolatedData[x]) for x in range(len(interpolatedData))]
-            interpolatedData = pd.concat(interpolatedData, axis=1,ignore_index=True)
-            interpolatedData.columns = thingBeingInterpolated
-        else:
-            print("Error: values must be pandas dataframes")
-            return -1
-        return interpolatedData
+                interpolated_data = np.interp(time_absorb['time'],simulation.timeHistories[0]['time'],data_to_interpolate)
+                interp_original[wavelength] = interpolated_data
+            if abs_kinetic_sens is not None:
+                #get the wavelength
+                wavelength = int(time_absorb.columns.values[1].split("_")[1])
+                for i,reaction_abs in enumerate(abs_kinetic_sens[wavelength].T): #loop over the rows which is looping time steps
+                    #now have a single column ie the reaction at the time steps and k. sens at that time step
+                    #now interpolate this
+                    data_to_interpolate = reaction_abs
+                    interpolated_data = np.interp(time_absorb['time'],simulation.timeHistories[0]['time'],data_to_interpolate)
+                    if i == 0:
+                        interp_abs_kinetic_sens[wavelength]=np.ndarray(shape=(len(interpolated_data),abs_kinetic_sens[wavelength].shape[1]))
+                    #now we have an interpolated column
+                    interp_abs_kinetic_sens[wavelength][:,i] = interpolated_data
+            if abs_phys_sens is not None:
+                #loop over all the adjusted abs, that have been interpolated already and ln'd
+                for i,abs_dict in enumerate(abs_phys_sens): #loops over each adjusted dict
+                    #get the wavelength of the csv file and match to the dict entry
+                    wavelength = int(time_absorb.columns.values[1].split("_")[1])
+                    data_to_interpolate = abs_dict[wavelength]
+                    #construct dataframe for the interpolation using the OG time history
+                    interpolated_data = np.interp(time_absorb['time'],simulation.timeHistories[0]['time'],data_to_interpolate)
+                    interp_abs_phys_sens[i][wavelength] = interpolated_data
+            #rember abs_coef_sens is a list of tuples where the last tuple is a abs dict, should always be the ln'd data
+            if abs_coef_sens is not None:
+                wavelength = int(time_absorb.columns.values[1].split("_")[1])
+                #construct dataframe for the interpolation using the OG time history
+                for i,abs_entry in enumerate(abs_coef_sens):
+                    data_to_interpolate = abs_entry[1][wavelength]
+                    interpolated_data = np.interp(time_absorb['time'],simulation.timeHistories[0]['time'],data_to_interpolate)
+                    interp_abs_coef_sens[i][1][wavelength] = interpolated_data
 
-   
+        return [interp_original,interp_abs_kinetic_sens,interp_abs_phys_sens,interp_abs_coef_sens]
+    
     def import_experimental_data(self, absorbance_csv_files:list=[]): 
         if len(absorbance_csv_files) == 0:
             print("Error: please give at least 1 experimental absorbance file")
