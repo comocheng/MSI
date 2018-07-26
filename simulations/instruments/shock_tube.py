@@ -278,7 +278,23 @@ class shockTube(sim.Simulation):
         for x in exp_interp_array:
             flipped.append(np.hstack(x))
         return flipped
-    
+   
+    def map_and_interp_ksens(self,time_history=None):
+        A = self.kineticSensitivities
+        N = self.kineticSensitivities
+        Ea = self.kineticSensitivities
+        for sheetN in N:
+            print("SHAPE:",sheetN.shape)
+            for column in sheetN.T:
+                column = column*np.log(self.timeHistories[0]['time']) if time_history is None else column*np.log(time_history)
+        
+        print("A CHECK:",A)
+        print("N CHECK:",N)
+        return [self.interpolate_experimental_kinetic(A),
+               self.interpolate_experimental_kinetic(N),
+               self.interpolate_experimental_kinetic(Ea)]
+            
+
     #assumes pre_interpolated has been interpolated against the original time history
     #assumes pre_interpolated is a list of dataframes where each dataframe is a time history
     #single is a single dataframe representing one time history/run of the simulation
