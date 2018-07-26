@@ -215,7 +215,14 @@ class shockTube(sim.Simulation):
             interpolated_data.insert(0,self.interpolate_time(index=-1-x))
 
         return interpolated_data
-    
+    def interpolate_species_sensitivities(self):
+        interpolated_data = self.interpolate_species_adjustment()
+        interpolated_sens = []
+        for th in interpolated_data:
+            interpolated_sens.append(self.interpolate_physical_sensitivities(time_history=th))
+
+        return interpolated_sens
+
     #interpolate a range of time histories agains the original
     #possibly add experimental flag to do range with exp data
     #end is exclusive
@@ -231,10 +238,11 @@ class shockTube(sim.Simulation):
         return interpolated_data
         
     #interpolates agains the original time history
-    def interpolate_physical_sensitivities(self):
-        interpolated_time = self.interpolate_time()
+    def interpolate_physical_sensitivities(self, index:int=-1, time_history=None):
+        interpolated_time = self.interpolate_time(index) if time_history is None else time_history
+        #print(interpolated_time)
         sensitivity = self.sensitivityCalculation(self.timeHistories[0][self.observables],
-                                                  interpolated_time,["temperature","pressure"]+self.observables)
+                                                  interpolated_time[self.observables],self.observables)
         if self.physSensHistories != None:
             self.physSensHistories.append(sensitivity)
         return sensitivity
