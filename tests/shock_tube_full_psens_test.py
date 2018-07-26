@@ -20,7 +20,7 @@ test_tube = st.shockTube(pressure=1.74,
                          save_timeHistories=1,
                          save_physSensHistories=1)
 
-csv_paths = ['MSI/data/test_data/hong_h2o.csv','MSI/data/test_data/hong_oh.csv']
+csv_paths = ['MSI/data/test_data/hong_h2o_4.csv','MSI/data/test_data/hong_oh_4.csv']
 exp_data = test_tube.importExperimentalData(csv_paths)
 
 test_tube.run() #set up original time history
