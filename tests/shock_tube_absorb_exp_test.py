@@ -51,4 +51,4 @@ interp_exp_data = abs_instance.interpolate_experimental(test_tube,loaded_experim
                                                         abs_kinetic_sens = abs_data[1],
                                                         abs_phys_sens = abs_phys_sens,
                                                         abs_coef_sens = perturbed_data)
-print(interp_exp_data[3])
+print(interp_exp_data)

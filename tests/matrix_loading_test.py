@@ -34,6 +34,10 @@ int_tp_psen_against_experimental = test_tube.interpolate_experimental([test_tube
                                                                     test_tube.interpolate_physical_sensitivities(index=2)])
 int_spec_psen_against_experimental = test_tube.interpolate_experimental(pre_interpolated=test_tube.interpolate_species_sensitivities())
 
-S = ml.load_S(int_ksens_against_experimental,
+mloader = ml.OptMatrix()
+S = mloader.load_S(int_ksens_exp_mapped,
               int_tp_psen_against_experimental,
-              int_spec_psen_against_experimental)
+              int_spec_psen_against_experimental,
+              test_tube.observables)
+
+print(S)
