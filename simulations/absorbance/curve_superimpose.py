@@ -113,7 +113,7 @@ class Absorb:
             ln_dict[key] = temp
         return ln_dict
     
-    def map_and_interp_ksens(self,sheet):
+    def map_ksens(self,sheet,time_history=None):
         A = sheet
         N = np.zeros(A.shape)
         Ea = np.zeros(A.shape)
@@ -161,7 +161,7 @@ class Absorb:
             if abs_kinetic_sens is not None:
                 #get the wavelength
                 wavelength = int(time_absorb.columns.values[1].split("_")[1])
-                if map_ksens==0:
+                if map_kinetic_sens==0:
                     for i,reaction_abs in enumerate(abs_kinetic_sens[wavelength].T): #loop over the rows which is looping time steps
                         #now have a single column ie the reaction at the time steps and k. sens at that time step
                         #now interpolate this
@@ -173,17 +173,18 @@ class Absorb:
                         interp_abs_kinetic_sens[wavelength][:,i] = interpolated_data
                 else:
                     #get list of sheets
-                    list_of_sheets_to_interp = self.map_and_interp_ksens(abs_kinetic_sens[wavelength])
+                    list_of_sheets_to_interp = self.map_ksens(abs_kinetic_sens[wavelength],simulation.timeHistories[0])
                     for sheet in list_of_sheets_to_interp:
+                        sheet_cpy = None
                         for i,reaction_abs in enumerate(sheet.T):
                             #now have a single column ie the reaction at the time steps and k. sens at that time step
                             #now interpolate this
-                            data_to_interpolate = reaction_abs
-                            interpolated_data = np.interp(time_absorb['time'],simulation.timeHistories[0]['time'],data_to_interpolate)
-                            if i == 0:
-                                interp_abs_kinetic_sens[wavelength]=np.ndarray(shape=(len(interpolated_data),abs_kinetic_sens[wavelength].shape[1]))
+                            interpolated_data = np.interp(time_absorb['time'],simulation.timeHistories[0]['time'],reaction_abs)
                             #now we have an interpolated column
-                            sheet[:,i] = interpolated_data
+                            if i == 0:
+                                sheet_cpy = np.ndarray(shape=(len(interpolated_data),sheet.shape[1]))
+                            sheet_cpy[:,i] = interpolated_data
+                        sheet = sheet_cpy
                     interp_abs_kinetic_sens[wavelength]=list_of_sheets_to_interp
 
             if abs_phys_sens is not None:
@@ -362,7 +363,6 @@ class Absorb:
            #this applies if the units on epsilon are given as they are in kappl paper 
            #must calcuate and pass in reactor volume 
         concentration = np.true_divide(1,temperature_matrix.flatten())*pressure_matrix.flatten()
-        print(time_history['H2O2'])
         concentration *= (1/(8.314e6))*time_history[species].values.flatten()
         
         
