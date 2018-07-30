@@ -27,35 +27,37 @@ class Absorb:
             index = 0
             for i in range(0,len(species_and_coupled_coefficients[species])):
                 orig_cc = species_and_coupled_coefficients[species][i]
-                
-                cc = (orig_cc[0]+del_param,orig_cc[1])
-                species_and_coupled_coefficients[species][i] = cc
-                changed_data = self.get_abs_data(simulation,
-                                                 absorb,
-                                                 pathlength,
-                                                 kinetic_sens = 0,
-                                                 pert_spec_coef = species_and_coupled_coefficients)
-                #changed_data is a dict, keys are wavelengths, values are absorbances
-                if summed_data is None:
-                    self.saved_perturb_data.append([(species,species_and_wavelengths[species][index],cc),
-                                                    changed_data])
-                else:                                
-                    self.saved_perturb_data.append([(species,species_and_wavelengths[species][index],cc),
-                                                    self.ln_abs(changed_data,summed_data,dk)])
-                
-                cc = (orig_cc[0],cc[1]+del_param)
-                species_and_coupled_coefficients[i] = cc
-                changed_data = self.get_abs_data(simulation,
-                                                 absorb,
-                                                 pathlength,
-                                                 kinetic_sens = 0,
-                                                 pert_spec_coef = species_and_coupled_coefficients)
-                if summed_data is None:
-                    self.saved_perturb_data.append([(species,species_and_wavelengths[species][index],cc),
-                                                    changed_data])
-                else:                                
-                    self.saved_perturb_data.append([(species,species_and_wavelengths[species][index],cc),
-                                                    self.ln_abs(changed_data,summed_data,dk)])
+                if orig_cc[0]==0 and orig_cc[1] == 0:
+                    pass
+                if orig_cc[0] != 0:
+                    cc = (orig_cc[0]+del_param,orig_cc[1])
+                    species_and_coupled_coefficients[species][i] = cc
+                    changed_data = self.get_abs_data(simulation,
+                                                     absorb,
+                                                     pathlength,
+                                                     kinetic_sens = 0,
+                                                     pert_spec_coef = species_and_coupled_coefficients)
+                    #changed_data is a dict, keys are wavelengths, values are absorbances
+                    if summed_data is None:
+                        self.saved_perturb_data.append([(species,species_and_wavelengths[species][index],cc),
+                                                        changed_data])
+                    else:                                
+                        self.saved_perturb_data.append([(species,species_and_wavelengths[species][index],cc),
+                                                        self.ln_abs(changed_data,summed_data,dk)])
+                if orig_cc[1] != 0:    
+                    cc = (orig_cc[0],cc[1]+del_param)
+                    species_and_coupled_coefficients[i] = cc
+                    changed_data = self.get_abs_data(simulation,
+                                                     absorb,
+                                                     pathlength,
+                                                     kinetic_sens = 0,
+                                                     pert_spec_coef = species_and_coupled_coefficients)
+                    if summed_data is None:
+                        self.saved_perturb_data.append([(species,species_and_wavelengths[species][index],cc),
+                                                        changed_data])
+                    else:                                
+                        self.saved_perturb_data.append([(species,species_and_wavelengths[species][index],cc),
+                                                        self.ln_abs(changed_data,summed_data,dk)])
                 species_and_coupled_coefficients[species][i] = orig_cc
                 index += 1
         return self.saved_perturb_data
@@ -312,7 +314,9 @@ class Absorb:
                     epsilon = (cc[0]*(1-(np.exp(np.true_divide(cc[1],temperature_matrix)))))
                 if ff == 'C':
                     epsilon = cc[0] 
-                
+                    if type(epsilon)==int:
+                        epsilon = np.ones(shape=temperature_matrix.shape)
+                        epsilon *= cc[0]
                 if wavelength == 215: #does this really need to be here, takes care of specific paper case?
                    epsilon *= 1000
                 
@@ -348,13 +352,17 @@ class Absorb:
             epsilon = (cc[0]*(1-(np.exp(np.true_divide(cc[1],temperature_matrix)))))
         if ff == 'C':
             epsilon = cc[0] 
-        
+            if type(epsilon)==int:
+                epsilon = np.ones(shape=temperature_matrix.shape)
+                epsilon *= cc[0]
+
         if wavelength == 215: #does this really need to be here?
            epsilon *= 1000
            #multiplying by 1000 to convert from L to cm^3 from the epsilon given in paper 
            #this applies if the units on epsilon are given as they are in kappl paper 
            #must calcuate and pass in reactor volume 
         concentration = np.true_divide(1,temperature_matrix.flatten())*pressure_matrix.flatten()
+        print(time_history['H2O2'])
         concentration *= (1/(8.314e6))*time_history[species].values.flatten()
         
         
