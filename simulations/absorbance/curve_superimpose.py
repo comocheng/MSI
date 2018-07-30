@@ -110,10 +110,22 @@ class Absorb:
                 temp.append((np.log(changed_data[key][i]) - np.log(orig_data[key][i]))/dk) 
             ln_dict[key] = temp
         return ln_dict
+    
+    def map_and_interp_ksens(self,sheet):
+        A = sheet
+        N = np.zeros(A.shape)
+        Ea = np.zeros(A.shape)
+        for x,column in enumerate(A.T):
+            N[:,x]= np.multiply(column,np.log(self.timeHistories[0]['temperature'])) if time_history is None else np.multiply(column,np.log(time_history['temperature']))
+            to_mult_ea = np.divide(-1,np.multiply(8314.4621,self.timeHistories[0]['temperature'])) if time_history is None else np.divide(-1,np.multiply(8314.4621,time_history['temperature']))
+            Ea[:,x]= np.multiply(column,to_mult_ea)
 
+        return [A,N,Ea]
+    
     def interpolate_experimental(self, simulation, experimental_data, 
                                  original_summed_absorption=None,
                                  abs_kinetic_sens=None,
+                                 map_kinetic_sens=1,
                                  abs_phys_sens=None,
                                  abs_coef_sens=None):
         if original_summed_absorption is None and abs_kinetic_sens is None and absorbance_phys_sens is None and abs_coef_sens is None:
@@ -147,15 +159,31 @@ class Absorb:
             if abs_kinetic_sens is not None:
                 #get the wavelength
                 wavelength = int(time_absorb.columns.values[1].split("_")[1])
-                for i,reaction_abs in enumerate(abs_kinetic_sens[wavelength].T): #loop over the rows which is looping time steps
-                    #now have a single column ie the reaction at the time steps and k. sens at that time step
-                    #now interpolate this
-                    data_to_interpolate = reaction_abs
-                    interpolated_data = np.interp(time_absorb['time'],simulation.timeHistories[0]['time'],data_to_interpolate)
-                    if i == 0:
-                        interp_abs_kinetic_sens[wavelength]=np.ndarray(shape=(len(interpolated_data),abs_kinetic_sens[wavelength].shape[1]))
-                    #now we have an interpolated column
-                    interp_abs_kinetic_sens[wavelength][:,i] = interpolated_data
+                if map_ksens==0:
+                    for i,reaction_abs in enumerate(abs_kinetic_sens[wavelength].T): #loop over the rows which is looping time steps
+                        #now have a single column ie the reaction at the time steps and k. sens at that time step
+                        #now interpolate this
+                        data_to_interpolate = reaction_abs
+                        interpolated_data = np.interp(time_absorb['time'],simulation.timeHistories[0]['time'],data_to_interpolate)
+                        if i == 0:
+                            interp_abs_kinetic_sens[wavelength]=np.ndarray(shape=(len(interpolated_data),abs_kinetic_sens[wavelength].shape[1]))
+                        #now we have an interpolated column
+                        interp_abs_kinetic_sens[wavelength][:,i] = interpolated_data
+                else:
+                    #get list of sheets
+                    list_of_sheets_to_interp = self.map_and_interp_ksens(abs_kinetic_sens[wavelength])
+                    for sheet in list_of_sheets_to_interp:
+                        for i,reaction_abs in enumerate(sheet.T):
+                            #now have a single column ie the reaction at the time steps and k. sens at that time step
+                            #now interpolate this
+                            data_to_interpolate = reaction_abs
+                            interpolated_data = np.interp(time_absorb['time'],simulation.timeHistories[0]['time'],data_to_interpolate)
+                            if i == 0:
+                                interp_abs_kinetic_sens[wavelength]=np.ndarray(shape=(len(interpolated_data),abs_kinetic_sens[wavelength].shape[1]))
+                            #now we have an interpolated column
+                            sheet[:,i] = interpolated_data
+                    interp_abs_kinetic_sens[wavelength]=list_of_sheets_to_interp
+
             if abs_phys_sens is not None:
                 #loop over all the adjusted abs, that have been interpolated already and ln'd
                 for i,abs_dict in enumerate(abs_phys_sens): #loops over each adjusted dict

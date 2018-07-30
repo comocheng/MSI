@@ -9,14 +9,14 @@ class OptMatrix(object):
     def load_S(self, exp_num, list_of_interpolated_kinetic_sens,
                               list_of_interpolated_tp_sens,
                               list_of_interpolated_species_sens,
-                              list_of_absorbance,
-                              observables_list)
+                              list_of_interpolated_absorbance_sens,
+                              observables_list):
     
         for i in range(0,exp_num):
             full_exp_matrix = self.load_single_exp(i,list_of_interpolated_kinetic_sens[i],
                                                      list_of_interpolated_tp_sens[i],
                                                      list_of_interpolated_species_sens[i],
-                                                     list_of_absorbance[i],
+                                                     list_of_interpolated_absorbance_sens[i],
                                                      observables_list)
     
     def load_single_exp(self, exp_num, interpolated_kinetic_sens,
