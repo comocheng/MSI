@@ -84,18 +84,18 @@ test_tube2.sensitivity_adjustment(temp_del = .01)
 test_tube2.sensitivity_adjustment(pres_del = .01)
 test_tube2.species_adjustment(.01) #do some sensitivity adjustments
 
-abs2_phys_sens = abs2_instance.absorb_phys_sensitivities(test_tube,abs2_data[0],abs2_loaded,15.2,dk=.01)
+abs2_phys_sens = abs2_instance.absorb_phys_sensitivities(test_tube2,abs2_data[0],abs2_loaded,15.2,dk=.01)
 
 loaded_experimental_data2 = abs2_instance.import_experimental_data(['MSI/data/test_data/hong_abs_4.csv'])
 
-interp_abs2_exp= abs2_instance.interpolate_experimental(test_tube,loaded_experimental_data2,
+interp_abs2_exp= abs2_instance.interpolate_experimental(test_tube2,loaded_experimental_data2,
                                                         original_summed_absorption=abs2_data[0],
                                                         abs_kinetic_sens = abs2_data[1],
                                                         abs_phys_sens = abs2_phys_sens,
                                                         abs_coef_sens = perturbed_coef2)
 
 
-int_tp_psen_against_experimental2 = test_tube.interpolate_experimental([test_tube2.interpolate_physical_sensitivities(index=1),
+int_tp_psen_against_experimental2 = test_tube2.interpolate_experimental([test_tube2.interpolate_physical_sensitivities(index=1),
                                                                         test_tube2.interpolate_physical_sensitivities(index=2)])
 int_spec_psen_against_experimental2 = test_tube2.interpolate_experimental(pre_interpolated=test_tube2.interpolate_species_sensitivities())
 
