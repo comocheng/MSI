@@ -260,11 +260,13 @@ class shockTube(sim.Simulation):
         else:
             array = self.kineticSensitivities
         exp_interp_array = []
-        if len(self.experimentalData) != array.shape[2]:
-            print("Error: mismatch between kineticSensitivities observables and given experimental data")
-            return -1
+        #if len(self.experimentalData) < array.shape[2]:
+        #    print("Error: mismatch between kineticSensitivities observables and given experimental data")
+        #    return -1
         #exp data and kineticSensitivities must match in size and order of observables
         for i,frame in enumerate(self.experimentalData):
+            if i > array.shape[2]:
+                break
             sheet = array[:,:,i]
             exp_interp_array.append([])
             for time_history in sheet.T:
@@ -315,6 +317,8 @@ class shockTube(sim.Simulation):
             array_list = []
             max_size = 0
             for i,frame in enumerate(self.experimentalData): #each frame is data for one observable
+                if i>len(self.observables):
+                    break
                 interpolated_column= np.interp(frame.ix[:,0],
                                                self.timeHistories[0]['time'],
                                                time_history.ix[:,i])
