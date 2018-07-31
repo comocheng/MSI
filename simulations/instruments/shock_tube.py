@@ -226,8 +226,10 @@ class shockTube(sim.Simulation):
     def interpolate_species_sensitivities(self):
         interpolated_data = self.interpolate_species_adjustment()
         interpolated_sens = []
+        
+        ind_off = len(self.timeHistories)-len(set(self.conditions.keys()).difference(['Ar','AR','HE','He','Kr','KR','Xe','XE','NE','Ne']))
         for i,th in enumerate(interpolated_data):
-            ind = len(self.timeHistories)-len(set(self.conditions.keys()).difference(['Ar','AR','HE','He','Kr','KR','Xe','XE','NE','Ne']))+i
+            ind = ind_off + i 
 
             interpolated_sens.append(self.interpolate_physical_sensitivities(index=ind,time_history=th))
 
