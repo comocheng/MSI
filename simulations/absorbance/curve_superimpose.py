@@ -27,7 +27,7 @@ class Absorb:
             index = 0
             for i in range(0,len(species_and_coupled_coefficients[species])):
                 orig_cc = species_and_coupled_coefficients[species][i]
-                if orig_cc[0]==0 and orig_cc[1] == 0:
+                if orig_cc[0] == 0 and orig_cc[1] == 0:
                     pass
                 if orig_cc[0] != 0:
                     cc = (orig_cc[0]+del_param,orig_cc[1])

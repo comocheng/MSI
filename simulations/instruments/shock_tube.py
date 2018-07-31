@@ -45,6 +45,7 @@ class shockTube(sim.Simulation):
         if save_physSensHistories == 1:
             self.physSensHistories = []
         self.setTPX()
+        self.dk = [0]
     def printVars(self):
         print('initial time: {0}\nfinal time: {1}\n'.format(self.initialTime,self.finalTime),
               '\nthermalBoundary: {0}\nmechanicalBoundary: {1}'.format(self.thermalBoundary,self.mechanicalBoundary),
@@ -139,7 +140,6 @@ class shockTube(sim.Simulation):
         self.kineticSensitivities= None #3D numpy array, columns are reactions with timehistories, depth gives the observable for those histories
         conditions = self.settingShockTubeConditions()
         mechanicalBoundary = conditions[1]
-        
         #same solution for both cp and cv sims
         if mechanicalBoundary == 'constant pressure':
             shockTube = ct.IdealGasConstPressureReactor(self.processor.solution,
@@ -226,8 +226,10 @@ class shockTube(sim.Simulation):
     def interpolate_species_sensitivities(self):
         interpolated_data = self.interpolate_species_adjustment()
         interpolated_sens = []
-        for th in interpolated_data:
-            interpolated_sens.append(self.interpolate_physical_sensitivities(time_history=th))
+        for i,th in enumerate(interpolated_data):
+            ind = len(self.timeHistories)-len(set(self.conditions.keys()).difference(['Ar','AR','HE','He','Kr','KR','Xe','XE','NE','Ne']))+i
+
+            interpolated_sens.append(self.interpolate_physical_sensitivities(index=ind,time_history=th))
 
         return interpolated_sens
 
@@ -249,8 +251,10 @@ class shockTube(sim.Simulation):
     def interpolate_physical_sensitivities(self, index:int=-1, time_history=None):
         interpolated_time = self.interpolate_time(index) if time_history is None else time_history
         #print(interpolated_time)
+        #calculate which dk
+        dk = self.dk[index]
         sensitivity = self.sensitivityCalculation(self.timeHistories[0][self.observables],
-                                                  interpolated_time[self.observables],self.observables)
+                                                  interpolated_time[self.observables],self.observables,dk)
         if self.physSensHistories != None:
             self.physSensHistories.append(sensitivity)
         return sensitivity

@@ -29,7 +29,7 @@ class Simulation(object):
         self.kineticSens = kineticSens
         self.physicalSens = physicalSens
         self.conditions = conditions
-        
+        self.dk = []        
     def setTPX(self,temperature:float=-1,pressure:float=-1,conditions:dict={}):
         '''
         Set solution object for a simulation
@@ -60,11 +60,10 @@ class Simulation(object):
         if spec_pair[0] != '':
            self.setTPX(self.temperature+self.temperature*temp_del,
                    self.pressure+self.pressure*pres_del,
-                   {spec_pair[0]:spec_pair[1]})
+                   {spec_pair[0]:self.conditions[spec_pair[0]]*spec_pair[1]})
         else:
            self.setTPX(self.temperature+self.temperature*temp_del,
-                       self.pressure+self.pressure*pres_del,
-                       {spec_pair[0]:self.conditions[spec_pair[0]]*spec_pair[1]})
+                       self.pressure+self.pressure*pres_del)
         
         data = self.run()
         self.setTPX()
