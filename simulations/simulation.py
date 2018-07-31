@@ -58,12 +58,13 @@ class Simulation(object):
                                spec_pair:(str,float)=('',0.0)):
 
         if spec_pair[0] != '':
-           self.setTPX(self.temperature+temp_del,
-                   self.pressure+pres_del,
+           self.setTPX(self.temperature+self.temperature*temp_del,
+                   self.pressure+self.pressure*pres_del,
                    {spec_pair[0]:spec_pair[1]})
         else:
-           self.setTPX(self.temperature+temp_del,
-                       self.pressure+pres_del)
+           self.setTPX(self.temperature+self.temperature*temp_del,
+                       self.pressure+self.pressure*pres_del,
+                       {spec_pair[0]:self.conditions[spec_pair[0]]*spec_pair[1]})
         
         data = self.run()
         self.setTPX()
