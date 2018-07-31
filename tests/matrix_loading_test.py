@@ -76,8 +76,7 @@ abs2_data = abs2_instance.superimpose_shock_tube(test_tube2,abs2_loaded,15.2,kin
 perturbed_coef2 = abs2_instance.perturb_abs_coef(.01,
                                           test_tube2,
                                           abs2_loaded,30,
-                                          summed_data = abs2_data[0],
-                                          dk = .01)
+                                          summed_data = abs2_data[0]) 
 
 int_ksens_exp_mapped2= test_tube2.map_and_interp_ksens()#ksens is wiped on rerun so int it before
 test_tube2.sensitivity_adjustment(temp_del = .01)

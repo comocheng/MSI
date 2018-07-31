@@ -32,8 +32,7 @@ abs_data = abs_instance.superimpose_shock_tube(test_tube,abs_loaded,30,kinetic_s
 perturbed_data = abs_instance.perturb_abs_coef(.01,
                                           test_tube,
                                           abs_loaded,30,
-                                          summed_data = abs_data[0],
-                                          dk = .01)
+                                          summed_data = abs_data[0])
 
 
 test_tube.sensitivity_adjustment(temp_del=.01)

@@ -10,8 +10,7 @@ class Absorb:
                     absorb:dict,pathlength:float,
                     absorbance_csv_files:list=[],
                     absorbance_csv_wavelengths:list=[],
-                    summed_data = None,
-                    dk = .01):
+                    summed_data = None):
 
         #modify absorb dict, modify each coef
         #remember to put it back
@@ -22,15 +21,16 @@ class Absorb:
         species = [species['species'] for species in absorb['Absorption-coefficients']]
         species_and_coupled_coefficients = dict(list(zip(species,coupled_coefficients)))
         species_and_wavelengths = dict(list(zip(species, self.get_wavelengths(absorb))))
-        
+        species_and_functional_form = dict(list(zip(species,self.get_functional(absorb)))) 
         for species in list(species_and_coupled_coefficients):
             index = 0
             for i in range(0,len(species_and_coupled_coefficients[species])):
                 orig_cc = species_and_coupled_coefficients[species][i]
                 if orig_cc[0] == 0 and orig_cc[1] == 0:
                     pass
+                
                 if orig_cc[0] != 0:
-                    cc = (orig_cc[0]+del_param,orig_cc[1])
+                    cc = (orig_cc[0]+orig_cc[0]*del_param,orig_cc[1])
                     species_and_coupled_coefficients[species][i] = cc
                     changed_data = self.get_abs_data(simulation,
                                                      absorb,
@@ -43,21 +43,37 @@ class Absorb:
                                                         changed_data])
                     else:                                
                         self.saved_perturb_data.append([(species,species_and_wavelengths[species][index],cc),
-                                                        self.ln_abs(changed_data,summed_data,dk)])
+                                                        self.ln_abs(changed_data,summed_data,dk=orig_cc[0]*del_param)])
+
                 if orig_cc[1] != 0:    
-                    cc = (orig_cc[0],cc[1]+del_param)
-                    species_and_coupled_coefficients[i] = cc
-                    changed_data = self.get_abs_data(simulation,
-                                                     absorb,
-                                                     pathlength,
-                                                     kinetic_sens = 0,
-                                                     pert_spec_coef = species_and_coupled_coefficients)
-                    if summed_data is None:
-                        self.saved_perturb_data.append([(species,species_and_wavelengths[species][index],cc),
-                                                        changed_data])
-                    else:                                
-                        self.saved_perturb_data.append([(species,species_and_wavelengths[species][index],cc),
-                                                        self.ln_abs(changed_data,summed_data,dk)])
+                    if species_and_functional_form[species][i] != 'B':
+                        cc = (orig_cc[0],orig_cc[1]+orig_cc[1]*del_param)
+                        species_and_coupled_coefficients[i] = cc
+                        changed_data = self.get_abs_data(simulation,
+                                                         absorb,
+                                                         pathlength,
+                                                         kinetic_sens = 0,
+                                                         pert_spec_coef = species_and_coupled_coefficients)
+                        if summed_data is None:
+                            self.saved_perturb_data.append([(species,species_and_wavelengths[species][index],cc),
+                                                            changed_data])
+                        else:                                
+                            self.saved_perturb_data.append([(species,species_and_wavelengths[species][index],cc),
+                                                            self.ln_abs(changed_data,summed_data,dk=orig_cc[1]*del_param)])
+                    else:
+                        cc = (orig_cc[0],orig_cc[1] + .01)
+                        changed_data = self.get_abs_data(simulation,
+                                                         absorb,
+                                                         pathlength,
+                                                         kinetic_sens = 0,
+                                                         pert_spec_coef = species_and_coupled_coefficients)
+                        if summed_data is None:
+                            self.saved_perturb_data.append([(species,species_and_wavelengths[species][index],cc),
+                                                            changed_data])
+                        else:                                
+                            self.saved_perturb_data.append([(species,species_and_wavelengths[species][index],cc),
+                                                            self.ln_abs(changed_data,summed_data,dk=.01)])
+
                 species_and_coupled_coefficients[species][i] = orig_cc
                 index += 1
         return self.saved_perturb_data
@@ -83,7 +99,8 @@ class Absorb:
     def absorb_phys_sensitivities(self,simulation:sim.instruments.shock_tube.shockTube,
                                   summed_data:dict,
                                   absorb:dict,
-                                  pathlength:float):
+                                  pathlength:float,
+                                  dk:float = .01):
         if len(simulation.timeHistories) < 2:
             print("Error: must have perturbed time histories to interpolate against")
             return -1
@@ -97,9 +114,8 @@ class Absorb:
                                      time_history=interp_time)) 
         
         ln_abs = []
-        for i,int_abs_data in enumerate(summed_interp_abs):
+        for i,int_abs_data in enumerate(summed_interp_abs[1:]):
             ln_abs.append(self.ln_abs(int_abs_data,summed_data,index=i+1,sim=simulation)) 
-        
         return summed_interp_abs
     
     def ln_abs(self,changed_data,orig_data,index=None,sim=None,dk=.01):
@@ -109,7 +125,7 @@ class Absorb:
             temp.clear()
             for i in range(0,len(orig_data[key])):
                 if sim is not None and index is not None: 
-                    temp.append((np.log(changed_data[key][i]) - np.log(orig_data[key][i]))/sim.dk[i]) 
+                    temp.append((np.log(changed_data[key][i]) - np.log(orig_data[key][i]))/sim.dk[index]) 
                 else:
                     temp.append((np.log(changed_data[key][i]) - np.log(orig_data[key][i]))/dk) 
             ln_dict[key] = temp
