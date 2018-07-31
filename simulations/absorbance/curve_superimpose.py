@@ -83,8 +83,7 @@ class Absorb:
     def absorb_phys_sensitivities(self,simulation:sim.instruments.shock_tube.shockTube,
                                   summed_data:dict,
                                   absorb:dict,
-                                  pathlength:float,
-                                  dk:float=.01):
+                                  pathlength:float):
         if len(simulation.timeHistories) < 2:
             print("Error: must have perturbed time histories to interpolate against")
             return -1
@@ -98,18 +97,21 @@ class Absorb:
                                      time_history=interp_time)) 
         
         ln_abs = []
-        for int_abs_data in summed_interp_abs:
-            ln_abs.append(self.ln_abs(int_abs_data,summed_data,dk)) 
+        for i,int_abs_data in enumerate(summed_interp_abs):
+            ln_abs.append(self.ln_abs(int_abs_data,summed_data,index=i+1,sim=simulation)) 
         
         return summed_interp_abs
     
-    def ln_abs(self,changed_data,orig_data,dk):
+    def ln_abs(self,changed_data,orig_data,index=None,sim=None,dk=.01):
         temp = []
         ln_dict = {}
         for key in orig_data.keys():
             temp.clear()
             for i in range(0,len(orig_data[key])):
-                temp.append((np.log(changed_data[key][i]) - np.log(orig_data[key][i]))/dk) 
+                if sim is not None and index is not None: 
+                    temp.append((np.log(changed_data[key][i]) - np.log(orig_data[key][i]))/sim.dk[i]) 
+                else:
+                    temp.append((np.log(changed_data[key][i]) - np.log(orig_data[key][i]))/dk) 
             ln_dict[key] = temp
         return ln_dict
     
