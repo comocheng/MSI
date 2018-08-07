@@ -3,7 +3,7 @@ sys.path.append('.') #get rid of this at some point with central test script or 
 
 import MSI.simulations.instruments.shock_tube as st
 import MSI.cti_core.cti_processor as pr
-import MSI.simulations.absorbance.curve_superimpose as csp 
+import MSI.simulations.absorbance.curve_superimpose as csp  
 import MSI.simulations.yaml_parser as yp
 import cantera as ct
 
@@ -26,9 +26,10 @@ test_tube = st.shockTube(pressure=3.44187,
 test_tube.run()
 
 parser = yp.Parser()
+abs_instance = csp.Absorb()
 exp_loaded = parser.load_to_obj('MSI/data/test_data/Troe_6.yaml')
 abs_loaded = parser.load_to_obj('MSI/data/test_data/Troe_6_abs.yaml')
-abs_data = csp.superimpose_shock_tube(test_tube,abs_loaded,30,kinetic_sens=0)
+abs_data = abs_instance.superimpose_shock_tube(test_tube,abs_loaded,30,kinetic_sens=0)
 print(abs_data)
 import matplotlib.pyplot as plt
 plt.plot(test_tube.timeHistories[0]['time']*1000,abs_data[215])
