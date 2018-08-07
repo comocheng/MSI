@@ -116,7 +116,7 @@ class Absorb:
         ln_abs = []
         for i,int_abs_data in enumerate(summed_interp_abs[1:]):
             ln_abs.append(self.ln_abs(int_abs_data,summed_data,index=i+1,sim=simulation)) 
-        return summed_interp_abs
+        return ln_abs
     
     def ln_abs(self,changed_data,orig_data,index=None,sim=None,dk=.01):
         temp = []
