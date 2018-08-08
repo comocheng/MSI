@@ -4,10 +4,10 @@ sys.path.append('.') #get rid of this at some point with central test script or 
 import MSI.simulations.instruments.shock_tube as st
 import MSI.cti_core.cti_processor as pr
 import MSI.optimization.matrix_loader as ml
+import MSI.optimization.opt_runner as opt
 import MSI.simulations.absorbance.curve_superimpose as csp
 import MSI.simulations.yaml_parser as yp
 import cantera as ct
-import pandas
 #################################################################################
 # This first test includes only one observable and no absorbance 
 ################################################################################
@@ -33,10 +33,7 @@ test_tube.run() #set up original time history
 
 parser = yp.Parser()
 #exp1_loaded = parser.load_to_obj('MSI/data/test_data/Troe_6.yaml')
-
-
-
-
+#put in once opt_runner has load functionality
 int_ksens_exp_mapped= test_tube.map_and_interp_ksens()#ksens is wiped on rerun so int it before
 test_tube.sensitivity_adjustment(temp_del = .01)
 test_tube.sensitivity_adjustment(pres_del = .01)
@@ -105,18 +102,35 @@ int_spec_psen_against_experimental2 = test_tube2.interpolate_experimental(pre_in
 list_of_interpolated_kinetic_sens = [int_ksens_exp_mapped,int_ksens_exp_mapped2]
 list_of_interpolated_tp_sens = [int_tp_psen_against_experimental,int_tp_psen_against_experimental2]
 list_of_interpolated_species_sens = [int_spec_psen_against_experimental,int_spec_psen_against_experimental2]
+#def build_single_exp_dict(self,exp_index:int,
+#                          simulation:sim.instruments.shock_tube.shockTube,
+#                          interpolated_kinetic_sens:dict,
+#                          interpolated_tp_sens:list,
+#                          interpolated_species_sens:list,
+#                          interpolated_absorbance:list=[]):
+ 
+exp_1 = opt.build_single_exp_dict(1,test_tube,
+                                  int_ksens_exp_mapped,
+                                  int_tp_psen_against_experimental,
+                                  int_spec_psen_against_experimental) #no absorbance in experiment 1
+ 
+exp_2 = opt.build_single_exp_dict(2,test_tube2,
+                                  int_ksens_exp_mapped2,
+                                  int_tp_psen_against_experimental2,
+                                  int_spec_psen_against_experimental2,
+                                  interpolated_absorbance=interp_abs2_exp) #absorbance in experiment 2
+print("Experiments built successfully")
+#print(exp_2['ksens']['A'][0].shape)
+#print(exp_2['species'][0].shape)
+#print(exp_2['species'][1].shape)
+#print(exp_2['species'][2].shape)
 
-#do absorbtion list
 
 
  ####################
 # Build the S matrix #
  ####################
 mloader = ml.OptMatrix()
-S = mloader.load_S(2,list_of_interpolated_kinetic_sens,
-                     list_of_interpolated_tp_sens, 
-                     list_of_interpolated_species_sens,
-                     [],#need to do absorbance sens
-                     test_tube.observables)
+S = mloader.load_S([exp_1,exp_2])
 
 print(S)
