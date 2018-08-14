@@ -5,6 +5,10 @@ import MSI.simulations.absorbance.curve_superimpose as csp
 import MSI.simulations.yaml_parser as yp
 
 
+#acts as front end to the rest of the system
+
+
+
 # takes the data from one experiment and puts it in a dict of dicts
 # that follows the format of the S matrix
 # only need the last 3 elements of the interpolated absorbance

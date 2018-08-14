@@ -32,9 +32,9 @@ class OptMatrix(object):
                 #kinetic sensitiviities
                 #build a long horizontal array then stack
                 #print(exp_dict_list[i]['ksens'][0][i].shape)
-                obs_matrix=np.hstack((exp_dict_list[i]['ksens']['A'][i], 
-                                    exp_dict_list[i]['ksens']['N'][i],
-                                    exp_dict_list[i]['ksens']['Ea'][i],))
+                obs_matrix=np.hstack((exp_dict_list[i]['ksens']['A'][j], 
+                                    exp_dict_list[i]['ksens']['N'][j],
+                                    exp_dict_list[i]['ksens']['Ea'][j],))
                 #for spec_sen in interpolated_species_sens:
                 #    obs_matrix=np.hstack((obs_matrix,spec_sen))
                 # wrong way to loop
@@ -49,13 +49,8 @@ class OptMatrix(object):
                 obs_matrix = np.hstack((obs_matrix,
                                         np.zeros((obs_matrix.shape[0],num_zeros))))
                 #do the psens
-                print("ksens shape:", obs_matrix.shape,"\ntemp and pressure shape:",exp_dict_list[i]['temperature'][obs].shape)
                 t_stack = np.vstack((exp_dict_list[i]['temperature'][obs],
                                     exp_dict_list[i]['pressure'][obs])).T
-                print("stacked tp shape:",t_stack.shape,"\n")
-                print(obs_matrix[:,0])
-                print("what the fuck")
-                print(t_stack[:,0])
                 obs_matrix = np.hstack((obs_matrix,t_stack))
                                         #exp_dict_list[i]['temperature'][obs],
                                         #exp_dict_list[i]['pressure'][obs]))
