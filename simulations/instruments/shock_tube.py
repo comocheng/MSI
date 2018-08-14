@@ -306,9 +306,9 @@ class shockTube(sim.Simulation):
                 to_mult_ea = np.divide(-1,np.multiply(8314.4621,self.timeHistories[0]['temperature'])) if time_history is None else np.divide(-1,np.multiply(8314.4621,time_history['temperature']))
                 Ea[:,x,i]= np.multiply(column,to_mult_ea)
 
-        return [self.interpolate_experimental_kinetic(A),
-               self.interpolate_experimental_kinetic(N),
-               self.interpolate_experimental_kinetic(Ea)]
+        return {'A':self.interpolate_experimental_kinetic(A),
+                'N':self.interpolate_experimental_kinetic(N),
+                'Ea':self.interpolate_experimental_kinetic(Ea)}
             
 
     #assumes pre_interpolated has been interpolated against the original time history
@@ -333,8 +333,6 @@ class shockTube(sim.Simulation):
             for i,frame in enumerate(self.experimentalData): #each frame is data for one observable
                 if i>len(self.observables):
                     break
-                print(time_history.ix[:,i])
-                print(self.timeHistories[0]['time'])
                 interpolated_column= np.interp(frame.ix[:,0],
                                                self.timeHistories[0]['time'],
                                                time_history.ix[:,i])
@@ -356,9 +354,7 @@ class shockTube(sim.Simulation):
             int_exp.append(new_frame)
         
         for x in int_exp:
-            print(int_exp)
             x.columns = self.observables[0:len(self.experimentalData)]
-            #x[x<0] = np.nan
         if single is not  None:
             return int_exp[0]
         else:
