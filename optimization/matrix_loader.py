@@ -125,7 +125,52 @@ class OptMatrix(object):
         return self.matrix
         '''
         pass
-    def load_Y():
+    def load_Y(self, exp_dict_list:list):
+        def natural_log_difference(experiment,model):
+            natural_log_diff = np.log(experiment) - np.log(model)
+            return natural_log_diff
+        
+        Y = []
+        YdataFrame = []
+        for i,exp_dic in enumerate(exp_dict_list):
+            for j,observable in enumerate((exp_dic['mole_fraction_observables']+
+                                           exp_dic['concentration_observables'])):
+                natural_log_diff = natural_log_difference(exp_dic['experimental_data'][j][observable].values,
+                                                          exp_dic['simulation'].timeHistoryInterpToExperiment[observable].dropna().values)
+                natural_log_diff =  natural_log_diff.reshape((natural_log_diff.shape[0],
+                                                  1))
+                
+                tempList = [observable+'_'+'experiment'+str(i)]*np.shape(natural_log_diff)[0]
+                YdataFrame.extend(tempList)
+                
+                Y.append(natural_log_diff)
+            if 'absorbance_observables' in list(exp_dic.keys()):
+                wavelengths = list(exp_dic['absorbance_ksens'].keys())
+                
+                for k,wl in enumerate(wavelengths):
+                    natural_log_diff = natural_log_difference(exp_dic['absorbance_experimental_data'][k]['Absorbance_'+str(wl)].values,exp_dic['absorbance_model_data'][wl].values)
+                    natural_log_diff =  natural_log_diff.reshape((natural_log_diff.shape[0],
+                                                  1))
+                    
+                    tempList = [str(wl)+'_'+'experiment'+str(i)]*np.shape(natural_log_diff)[0]
+                    YdataFrame.extend(tempList)
+                    
+                    
+                    Y.append(natural_log_diff)
+        
+        Y = np.vstack((Y))
+        YdataFrame = pd.DataFrame({'value': YdataFrame,'ln_difference': Y})
+        
+        return Y, YdataFrame
+                
+
+        
+                
+                
+            
+            
+
+        
         pass
 
     def build_Z():
