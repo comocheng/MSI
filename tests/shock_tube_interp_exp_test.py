@@ -20,14 +20,15 @@ test_tube = st.shockTube(pressure=1.74,
                          save_timeHistories=1,
                          save_physSensHistories=1)
 
-csv_paths = ['MSI/data/test_data/hong_h2o.csv','MSI/data/test_data/hong_oh.csv']
+csv_paths = ['MSI/data/test_data/hong_oh_4.csv','MSI/data/test_data/hong_h2o_4.csv']
 exp_data = test_tube.importExperimentalData(csv_paths)
+
 test_tube.run()
 test_tube.species_adjustment(.01)
 spec_data = test_tube.interpolate_species_adjustment()
 interpolated_time_history= test_tube.interpolate_experimental(pre_interpolated=spec_data)
 
-print(interpolated_time_history)
+#print(interpolated_time_history)
 single_data = test_tube.interpolate_experimental(single=test_tube.timeHistories[0])
-print(single_data)
+#print(single_data)
 
