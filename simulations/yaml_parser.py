@@ -128,3 +128,30 @@ class Parser(object):
                    'uncertaintyParameterOnes':uncertainty_parameter_ones,
                    'uncertaintyParameterTwos':uncertainty_parameter_twos,
                    }
+            
+    def load_yaml_list(self, yaml_list:list = []):
+        list_of_yaml_objects = []
+        for tup in yaml_list:
+            temp = []
+            for file in tup:
+                temp.append(self.load_to_obj(file))
+            list_of_yaml_objects.append(temp) 
+        list_of_yaml_objects = [tuple(lst) for lst in list_of_yaml_objects ]               
+        return list_of_yaml_objects
+    
+    def parsing_multiple_dictonaries(self,list_of_yaml_objects:list = []):
+        experiment_dictonaries = []
+        for tup in list_of_yaml_objects:
+            if len(tup)>1:
+                experiment_dictonaries.append(self.parse_shock_tube_obj(loaded_exp = tup[0],
+                                                                        loaded_absorption = tup[1]))
+            else:
+                experiment_dictonaries.append(self.parse_shock_tube_obj(loaded_exp = tup[0]))
+        return experiment_dictonaries
+    
+    
+                
+                
+        
+        
+    
