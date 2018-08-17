@@ -3,7 +3,7 @@ import pandas as pd
 
 class OptMatrix(object):
     def __init__(self):
-        self.matrix = None
+        self.S = None
  
     #loads one experiment into self.matrix. Decides padding based on previous matrix or handle based on total exp num?
     def load_S(self, exp_dict_list:list):
@@ -51,6 +51,7 @@ class OptMatrix(object):
                 #do the psens
                 t_stack = np.vstack((exp_dict_list[i]['temperature'][obs],
                                     exp_dict_list[i]['pressure'][obs])).T
+                print("what\n",obs_matrix.shape,t_stack.shape)
                 obs_matrix = np.hstack((obs_matrix,t_stack))
                                         #exp_dict_list[i]['temperature'][obs],
                                         #exp_dict_list[i]['pressure'][obs]))
@@ -67,10 +68,12 @@ class OptMatrix(object):
                 #sigma padding, how do
                 
                 #do the vertical stacking
-                if i == 0:
+                if j == 0:
                     exp_matrix = obs_matrix
                 else:
-                    exp_matrix = np.vstack((self.matrix,obs_matrix)) 
+                    print("what")
+                    print(exp_matrix.shape,"\n",obs_matrix.shape)
+                    exp_matrix = np.vstack((exp_matrix,obs_matrix)) 
                 
             #loop the abs data
                 #do abs ksens
