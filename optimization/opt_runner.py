@@ -8,7 +8,6 @@ import MSI.simulations.yaml_parser as yp
 #acts as front end to the rest of the system
 
 
-
 # takes the data from one experiment and puts it in a dict of dicts
 # that follows the format of the S matrix
 # only need the last 3 elements of the interpolated absorbance
@@ -21,7 +20,9 @@ def build_single_exp_dict(exp_index:int,
                           interpolated_kinetic_sens:dict,
                           interpolated_tp_sens:list,
                           interpolated_species_sens:list,
-                          interpolated_absorbance:list=[]):
+                          interpolated_absorbance:list=[],
+                          experimental_data:list =[],
+                          absorbance_experimental_data:list=[]):
     exp_dict = {}
     exp_dict['index']              = exp_index
     exp_dict['simulation']         = simulation
@@ -30,10 +31,20 @@ def build_single_exp_dict(exp_index:int,
     exp_dict['pressure']           = interpolated_tp_sens[1]
     exp_dict['species']            = interpolated_species_sens
     exp_dict['observables']        = simulation.observables
+    exp_dict['concentration_observables'] = simulation.concentrationObservables
+    exp_dict['mole_fraction_observables'] = simulation.moleFractionObservables
+    #needs to be in the order of mole fraction csv files + concentration csv files 
+    exp_dict['experimental_data'] = experimental_data
+    
+    
     if len(interpolated_absorbance) != 0:
+        exp_dict['absorbance_model_data'] = interpolated_absorbance[0]
         exp_dict['absorbance_ksens']   = interpolated_absorbance[1]
         exp_dict['absorbance_psens']   = interpolated_absorbance[2]
         exp_dict['perturbed_coef']     = interpolated_absorbance[3]
+        exp_dict['absorbance_observables'] = simulation.absorbanceObservables
+        exp_dict['absorbance_experimental_data'] = absorbance_experimental_data
+        
     return exp_dict
 
 

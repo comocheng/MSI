@@ -192,6 +192,7 @@ class Absorb:
                 else:
                     #get list of sheets
                     list_of_sheets_to_interp = self.map_ksens(abs_kinetic_sens[wavelength],simulation.timeHistories[0])
+                    interpolated_sheets = []
                     for sheet in list_of_sheets_to_interp:
                         sheet_cpy = None
                         for i,reaction_abs in enumerate(sheet.T):
@@ -203,7 +204,8 @@ class Absorb:
                                 sheet_cpy = np.ndarray(shape=(len(interpolated_data),sheet.shape[1]))
                             sheet_cpy[:,i] = interpolated_data
                         sheet = sheet_cpy
-                    interp_abs_kinetic_sens[wavelength]=list_of_sheets_to_interp
+                        interpolated_sheets.append(sheet)
+                    interp_abs_kinetic_sens[wavelength]=interpolated_sheets
 
             if abs_phys_sens is not None:
                 #loop over all the adjusted abs, that have been interpolated already and ln'd

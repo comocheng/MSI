@@ -13,7 +13,8 @@ class shockTube(sim.Simulation):
                  kineticSens:int,physicalSens:int,conditions:dict,
                  initialTime,finalTime,thermalBoundary,mechanicalBoundary,
                  processor:ctp.Processor=None,cti_path="",save_timeHistories:int=0, 
-                 save_physSensHistories=0):
+                 save_physSensHistories=0,moleFractionObservables:list=[],
+                 absorbanceObservables:list=[],concentrationObservables:list=[]):
 
         '''
         Child class of shock Tubes. Inherits all attributes and
@@ -38,8 +39,12 @@ class shockTube(sim.Simulation):
         self.kineticSensitivities= None
         self.timeHistory = None
         self.experimentalData = None
+        self.concentrationObservables = concentrationObservables
+        self.moleFractionObservables = moleFractionObservables
+        self.absorbanceObservables = absorbanceObservables
         if save_timeHistories == 1:
             self.timeHistories=[]
+            self.timeHistoryInterpToExperiment = None
         else:
             self.timeHistories=None
         if save_physSensHistories == 1:
@@ -259,6 +264,8 @@ class shockTube(sim.Simulation):
                                                   interpolated_time[self.observables],self.observables,dk)
         if self.physSensHistories != None:
             self.physSensHistories.append(sensitivity)
+#        print('this is sensitivity')
+#        print(sensitivity)
         return sensitivity
     
     #returns a 3D array of interpolated time histories corrosponding to physical sensitivities
@@ -327,6 +334,14 @@ class shockTube(sim.Simulation):
             pre_interpolated = [single]
         
         int_exp = []
+        #This portion of the function removes the pressure and the temperature from the pre_interpolated frames
+        #so that when it gets interpolated against experimental data the temperature and pressure are not there
+        if isinstance(pre_interpolated[0],pd.DataFrame):
+            if 'pressure' in pre_interpolated[0].columns.tolist() and 'temperature' in pre_interpolated[0].columns.tolist():
+                pre_interpolated = [df.drop(columns=['temperature','pressure']) for df in pre_interpolated]
+
+        
+ 
         for time_history in pre_interpolated:
             array_list = []
             max_size = 0
@@ -393,3 +408,6 @@ class shockTube(sim.Simulation):
         experimentalData = [experimentalData[x].apply(pd.to_numeric, errors = 'coerce').dropna() for x in range(len(experimentalData))]
         self.experimentalData = experimentalData
         return experimentalData
+
+    def savingInterpTimeHistoryAgainstExp(self,timeHistory):
+        self.timeHistoryInterpToExperiment = timeHistory
