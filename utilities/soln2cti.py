@@ -515,4 +515,29 @@ def write(solution,filearg):
                     f.write(falloff_str)
                 except IndexError:
                     f.write('\n           )\n\n')
+            if equation_type=='PlogReaction':
+                f.write('#  Reaction '+str(m)+'\n')
+                f.write('pdep_arrhenius(\''+equation_object.equation+'\',\n')
+                n=len(equation_object.rates)
+                count=1
+                for plog in equation_object.rates:
+                    #print(plog)
+                    #pre_exponential_factor=plog[1].pre_exponential_factor
+                    #temperature_exponent=plog[1].temperature_exponent
+                    activation_energy=plog[1].activation_energy/calories_constant
+                    convertedPressure=float(plog[0])*9.86923e-6
+                    if sum(equation_object.reactants.values())==1.0:
+                        f.write('               [('+'%s' % float('%.5g' % convertedPressure)+', \'atm\'), ')
+                        f.write('%.7e' % Decimal(str(plog[1].pre_exponential_factor)))
+                    elif sum(equation_object.reactants.values())==2.0:
+                        f.write('               [('+'%s' % float('%.5g' % convertedPressure)+', \'atm\'), ')
+                        f.write('%.7e' % Decimal(str(plog[1].pre_exponential_factor*1000.0)))
+                    f.write(', '+'%s' % float('%.3g' % plog[1].temperature_exponent))
+                    f.write(', '+'%s' % float('%.5g' % activation_energy))
+                    f.write(']')
+                    if count==n:
+                        f.write(')\n\n')
+                    elif count<n:
+                        f.write(',\n')
+                    count=count+1
     return output_file_name
