@@ -349,7 +349,7 @@ class Processor(object): #handles one optimization but may add support for multi
     #The following function returns the reactions for all reactions with a specified index.  
     #Can be useful in conjunction with remove_reactions() for getting all the equations
     #for reactions to be treated with master equation solvers    
-    def me_reaction_equations(self, to_remove:list):
+    def reaction_equations(self, to_remove:list):
         list_of_rxns=[]
         for i in to_remove:
             list_of_rxns.append(self.solution.reaction_equations()[i-1])
