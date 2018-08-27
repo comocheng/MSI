@@ -198,7 +198,7 @@ class Processor(object): #handles one optimization but may add support for multi
     
     #parse token for reading active parameter from file
     # all valid tokens are two element lists
-    def parse_token(self,token:list, empty_param, r_index:int, line_no:int):
+    def parse_token(self,empty_param,token:list,r_index:int, line_no:int):
         if len(token)!=2:
             print('Error: Parsing file gave wrong number of tokens at line {0}'.format(line_no+1))
             return False,empty_param,r_index
@@ -344,7 +344,19 @@ class Processor(object): #handles one optimization but may add support for multi
                                     kinetics='GasKinetics',
                                     species=self.solution.species(),
                                     reactions=clean_reactions)
-
+        
+        
+    #The following function returns the reactions for all reactions with a specified index.  
+    #Can be useful in conjunction with remove_reactions() for getting all the equations
+    #for reactions to be treated with master equation solvers    
+    def me_reaction_equations(self, to_remove:list):
+        list_of_rxns=[]
+        for i in to_remove:
+            list_of_rxns.append(self.solution.reaction_equations()[i-1])
+            
+        return list_of_rxns
+    
+    
     #appends list of reaction indices with those from a file
     #expects format of one index per line, more behavior in future?
     def append_list(self, path, list_to_add):
