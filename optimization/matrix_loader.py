@@ -32,46 +32,45 @@ class OptMatrix(object):
                 #kinetic sensitiviities
                 #build a long horizontal array then stack
                 #print(exp_dict_list[i]['ksens'][0][i].shape)
-                obs_matrix=np.hstack((exp_dict_list[i]['ksens']['A'][j], 
-                                    exp_dict_list[i]['ksens']['N'][j],
-                                    exp_dict_list[i]['ksens']['Ea'][j],))
-                                
-                #do the prepadding psens
-                num_zeros = 0
-                for jj in range(0,i): #loop the exp before exp i
-                    #tp padding
-                    num_zeros+=2 
-                    #species padding
-                    num_zeros+= len(exp_dict_list[jj]['observables'])
-                obs_matrix = np.hstack((obs_matrix,
-                                        np.zeros((obs_matrix.shape[0],num_zeros))))
-                #do the psens
-                t_stack = np.vstack((exp_dict_list[i]['temperature'][obs],
-                                    exp_dict_list[i]['pressure'][obs])).T
-                print("what\n",obs_matrix.shape,t_stack.shape)
-                obs_matrix = np.hstack((obs_matrix,t_stack))
-                                        #exp_dict_list[i]['temperature'][obs],
-                                        #exp_dict_list[i]['pressure'][obs]))
-                #psens post padding
-                num_zeros = 0
-                for jj in range(i+1,num_exp): 
-                    #tp padding
-                    num_zeros+=2 
-                    #species padding
-                    num_zeros+= len(exp_dict_list[jj]['observables'])
-                obs_matrix = np.hstack((obs_matrix,
-                                        np.zeros((obs_matrix.shape[0],num_zeros))))
+                if j < len(exp_dict_list[i]['ksens']['A'])-1:
+                    obs_matrix=np.hstack((exp_dict_list[i]['ksens']['A'][j], 
+                                        exp_dict_list[i]['ksens']['N'][j],
+                                        exp_dict_list[i]['ksens']['Ea'][j],))
+                                    
+                    #do the prepadding psens
+                    num_zeros = 0
+                    for jj in range(0,i): #loop the exp before exp i
+                        #tp padding
+                        num_zeros+=2 
+                        #species padding
+                        num_zeros+= len(exp_dict_list[jj]['observables'])
+                    obs_matrix = np.hstack((obs_matrix,
+                                            np.zeros((obs_matrix.shape[0],num_zeros))))
+                    #do the psens
+                    t_stack = np.vstack((exp_dict_list[i]['temperature'][obs],
+                                        exp_dict_list[i]['pressure'][obs])).T
+                    obs_matrix = np.hstack((obs_matrix,t_stack))
+                                            #exp_dict_list[i]['temperature'][obs],
+                                            #exp_dict_list[i]['pressure'][obs]))
+                    #psens post padding
+                    num_zeros = 0
+                    for jj in range(i+1,num_exp): 
+                        #tp padding
+                        num_zeros+=2 
+                        #species padding
+                        num_zeros+= len(exp_dict_list[jj]['observables'])
+                    obs_matrix = np.hstack((obs_matrix,
+                                            np.zeros((obs_matrix.shape[0],num_zeros))))
 
-                #sigma padding, how do
-                obs_matrix = np.hstack((obs_matrix,np.zeros((obs_matrix.shape[0],num_ind_pert_coef))))                    
-                #do the vertical stacking
-                if j == 0:
-                    exp_matrix = obs_matrix
+                    #sigma padding, how do
+                    obs_matrix = np.hstack((obs_matrix,np.zeros((obs_matrix.shape[0],num_ind_pert_coef))))                    
+                    #do the vertical stacking
+                    if j == 0:
+                        exp_matrix = obs_matrix
+                    else:
+                        exp_matrix = np.vstack((exp_matrix,obs_matrix)) 
                 else:
-                    print("what")
-                    print(exp_matrix.shape,"\n",obs_matrix.shape)
-                    exp_matrix = np.vstack((exp_matrix,obs_matrix)) 
-                
+                    break
             #loop the abs data, have to do it by wavelength, build the sigmas at once sep?
                 #do abs ksens
 

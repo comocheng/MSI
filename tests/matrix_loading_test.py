@@ -50,7 +50,7 @@ int_spec_psen_against_experimental = test_tube.interpolate_experimental(pre_inte
 test_p2 = pr.Processor('MSI/data/test_data/FFCM1.cti')
 test_tube2 = st.shockTube(pressure=1.672,
                          temperature=1182,
-                         observables=['OH','H2O','HO2','H2O2'],
+                         observables=['H2O','OH','HO2','H2O2'],
                          kineticSens=1,
                          physicalSens=1,
                          conditions={'H2O2':0.002046 ,'H2O': 0.001113,'O2':0.000556,'Ar':0.996285},
@@ -62,7 +62,7 @@ test_tube2 = st.shockTube(pressure=1.672,
                          save_timeHistories=1,
                          save_physSensHistories=1)
 
-csv_paths2 = ['MSI/data/test_data/hong_oh_4.csv','MSI/data/test_data/hong_h2o_4.csv']
+csv_paths2 = ['MSI/data/test_data/hong_h2o_4.csv','MSI/data/test_data/hong_oh_4.csv']
 exp_data2 = test_tube2.importExperimentalData(csv_paths2)
 
 test_tube2.run() #set up original time history
