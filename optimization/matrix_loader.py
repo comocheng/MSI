@@ -32,7 +32,7 @@ class OptMatrix(object):
                 #kinetic sensitiviities
                 #build a long horizontal array then stack
                 #print(exp_dict_list[i]['ksens'][0][i].shape)
-                if j < len(exp_dict_list[i]['ksens']['A'])-1:
+                if j < len(exp_dict_list[i]['ksens']['A']):
                     obs_matrix=np.hstack((exp_dict_list[i]['ksens']['A'][j], 
                                         exp_dict_list[i]['ksens']['N'][j],
                                         exp_dict_list[i]['ksens']['Ea'][j],))
