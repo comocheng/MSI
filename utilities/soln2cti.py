@@ -7,7 +7,7 @@ from __future__ import division
 import os
 import textwrap
 from string import Template
-
+import numpy as np
 import cantera as ct
 
 def write(solution,filearg):
@@ -540,4 +540,23 @@ def write(solution,filearg):
                     elif count<n:
                         f.write(',\n')
                     count=count+1
+            if equation_type=='ChebyshevReaction':
+                f.write('#  Reaction '+str(m)+'\n')
+                f.write('chebyshev_reaction(\''+equation_object.equation+'\',\n')
+                f.write('                   Tmin='+'%s' % float('%.1g' % equation_object.Tmin)+', Tmax='+'%s' % float('%.1g' % equation_object.Tmax)+',\n')
+                convertedPressure1=float(equation_object.Pmin)*9.86923e-6
+                convertedPressure2=float(equation_object.Pmax)*9.86923e-6
+                f.write('                   Pmin=('+'%s' % float('%.5g' % convertedPressure1)+', \'atm\'),')
+                f.write(' Pmax=('+'%s' % float('%.5g' % convertedPressure2)+', \'atm\'),\n')
+                f.write('                   coeffs=([')
+                tempvar=np.arange(len(equation_object.coeffs[:,0]))
+                for i in np.arange(len(equation_object.coeffs[:,0])):
+                    if i==0:
+                        f.write(str(list(equation_object.coeffs[i,:])))
+                    elif i!=0 and i!=tempvar[-1]:
+                        f.write('                           '+str(list(equation_object.coeffs[i,:])))
+                    if i!=tempvar[-1]:
+                        f.write(',\n')
+                    elif i==tempvar[-1]:
+                        f.write(']),\n)\n')
     return output_file_name
