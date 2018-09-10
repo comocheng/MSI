@@ -3,7 +3,7 @@ import pandas as pd
 
 class OptMatrix(object):
     def __init__(self):
-        self.matrix = None
+        self.S = None
  
     #loads one experiment into self.matrix. Decides padding based on previous matrix or handle based on total exp num?
     def load_S(self, exp_dict_list:list):
@@ -32,47 +32,46 @@ class OptMatrix(object):
                 #kinetic sensitiviities
                 #build a long horizontal array then stack
                 #print(exp_dict_list[i]['ksens'][0][i].shape)
-                obs_matrix=np.hstack((exp_dict_list[i]['ksens']['A'][j], 
-                                    exp_dict_list[i]['ksens']['N'][j],
-                                    exp_dict_list[i]['ksens']['Ea'][j],))
-                #for spec_sen in interpolated_species_sens:
-                #    obs_matrix=np.hstack((obs_matrix,spec_sen))
-                # wrong way to loop
-                                
-                #do the prepadding psens
-                num_zeros = 0
-                for jj in range(0,i): #loop the exp before exp i
-                    #tp padding
-                    num_zeros+=2 
-                    #species padding
-                    num_zeros+= len(exp_dict_list[jj]['observables'])
-                obs_matrix = np.hstack((obs_matrix,
-                                        np.zeros((obs_matrix.shape[0],num_zeros))))
-                #do the psens
-                t_stack = np.vstack((exp_dict_list[i]['temperature'][obs],
-                                    exp_dict_list[i]['pressure'][obs])).T
-                obs_matrix = np.hstack((obs_matrix,t_stack))
-                                        #exp_dict_list[i]['temperature'][obs],
-                                        #exp_dict_list[i]['pressure'][obs]))
-                #psens post padding
-                num_zeros = 0
-                for jj in range(i+1,num_exp): 
-                    #tp padding
-                    num_zeros+=2 
-                    #species padding
-                    num_zeros+= len(exp_dict_list[jj]['observables'])
-                obs_matrix = np.hstack((obs_matrix,
-                                        np.zeros((obs_matrix.shape[0],num_zeros))))
+                if j < len(exp_dict_list[i]['ksens']['A']):
+                    obs_matrix=np.hstack((exp_dict_list[i]['ksens']['A'][j], 
+                                        exp_dict_list[i]['ksens']['N'][j],
+                                        exp_dict_list[i]['ksens']['Ea'][j],))
+                                    
+                    #do the prepadding psens
+                    num_zeros = 0
+                    for jj in range(0,i): #loop the exp before exp i
+                        #tp padding
+                        num_zeros+=2 
+                        #species padding
+                        num_zeros+= len(exp_dict_list[jj]['observables'])
+                    obs_matrix = np.hstack((obs_matrix,
+                                            np.zeros((obs_matrix.shape[0],num_zeros))))
+                    #do the psens
+                    t_stack = np.vstack((exp_dict_list[i]['temperature'][obs],
+                                        exp_dict_list[i]['pressure'][obs])).T
+                    obs_matrix = np.hstack((obs_matrix,t_stack))
+                                            #exp_dict_list[i]['temperature'][obs],
+                                            #exp_dict_list[i]['pressure'][obs]))
+                    #psens post padding
+                    num_zeros = 0
+                    for jj in range(i+1,num_exp): 
+                        #tp padding
+                        num_zeros+=2 
+                        #species padding
+                        num_zeros+= len(exp_dict_list[jj]['observables'])
+                    obs_matrix = np.hstack((obs_matrix,
+                                            np.zeros((obs_matrix.shape[0],num_zeros))))
 
-                #sigma padding, how do
-                
-                #do the vertical stacking
-                if i == 0:
-                    exp_matrix = obs_matrix
+                    #sigma padding, how do
+                    obs_matrix = np.hstack((obs_matrix,np.zeros((obs_matrix.shape[0],num_ind_pert_coef))))                    
+                    #do the vertical stacking
+                    if j == 0:
+                        exp_matrix = obs_matrix
+                    else:
+                        exp_matrix = np.vstack((exp_matrix,obs_matrix)) 
                 else:
-                    exp_matrix = np.vstack((self.matrix,obs_matrix)) 
-                
-            #loop the abs data
+                    break
+            #loop the abs data, have to do it by wavelength, build the sigmas at once sep?
                 #do abs ksens
 
 
@@ -91,40 +90,6 @@ class OptMatrix(object):
         #vstack the indentity
 
         #maybe have metadata in the matrix or in some other dict, to give info on where and how get data out?
-    def load_single_exp(self, exp_num, interpolated_kinetic_sens,
-                                       interpolated_tp_sens,
-                                       interpolated_species_sens, 
-                                       observables_list):
-        '''
-        interpolated_kinetic_sens: list of 3 numpy arrays. Each array contains sheets representing one observable
-                                   interpolated from experimental data
-        interpolated tp sens: interpolated temperature and pressure sensitivities from some experimental data
-        interpolated_species_sens: species sensitiviites listed by observables
-        '''
-        '''
-        obs_matrix = None
-        obs_matrix = interpolated_kinetic_sens[0][0] #make a base to build the matrix off of
-        for i,obs in enumerate(observables_list):
-            #kinetic sensitiviities
-            #build a long horizontal array then stack
-            print(interpolated_kinetic_sens[0][i].shape)
-            obs_matrix=np.hstack((interpolated_kinetic_sens[0][i], 
-                                interpolated_kinetic_sens[1][i],
-                                interpolated_kinetic_sens[2][i],))
-                                #interpolated_tp_sens[0][obs].values.reshape(50,1),
-                                #interpolated_tp_sens[1][obs].values.reshape(50,1)))
-            #for spec_sen in interpolated_species_sens:
-            #    obs_matrix=np.hstack((obs_matrix,spec_sen))
-            # wrong way to loop
-            if i == 0:
-                obs_matrix = obs_matrix
-            else:
-                obs_matrix = np.vstack((self.matrix,obs_matrix)) 
-        #need to do abs, and handle padding,
-        #do calc to figure out size of the 0 chunks for mult exp
-        return self.matrix
-        '''
-        pass
     def load_Y(self, exp_dict_list:list):
         def natural_log_difference(experiment,model):
             natural_log_diff = np.log(experiment) - np.log(model)
@@ -162,16 +127,6 @@ class OptMatrix(object):
         YdataFrame = pd.DataFrame({'value': YdataFrame,'ln_difference': Y})
         
         return Y, YdataFrame
-                
-
-        
-                
-                
-            
-            
-
-        
-        pass
 
     def build_Z():
         pass
