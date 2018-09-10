@@ -11,7 +11,7 @@ and adds those reactions to create a complete internal mechanism
 
 import numpy as np
 import cantera as ct
-from ..utilities import soln2cti as ctiw
+import soln2cti as ctiw
 
 
 def cti_write(x={},original_cti='',master_rxns='',master_index=[]):
@@ -154,7 +154,8 @@ def cti_write(x={},original_cti='',master_rxns='',master_index=[]):
     
     new_file=ctiw.write(NewModel)
     return new_file
-def cti_write2(x={},original_cti='',master_rxns='',master_index=[]):
+def cti_write2(x={},original_cti='',master_rxns='',master_index=[],MP={}):
+    print(MP)
     if not original_cti:
         raise Exception('Please provide a name for the original mechanism file and try again.')
     if not master_rxns and np.any(master_index):
@@ -191,114 +192,217 @@ def cti_write2(x={},original_cti='',master_rxns='',master_index=[]):
         with open(master_rxns) as f:
             reactionsList=f.readlines()
         lineList=lineList+reactionsList
-        with open('masterTemp.cti') as f:
+        with open('masterTemp.cti','w') as f:
             f.writelines(lineList)
         master_reactions=ct.Solution('masterTemp.cti')
-        master_rxn_eqs=master_reactions.reaction_equations
+        master_rxn_eqs=master_reactions.reaction_equations()
     original_rxn_eqs=[]
     for i in np.arange(original_mechanism.n_reactions):
         if master_index[i]:
             NewModel.add_reaction(original_mechanism.reaction(i))
             original_rxn_count+=1
             original_rxn_eqs.append(original_mechanism.reaction_equation(i))
+#            if 'FalloffReaction' in str(type(original_mechanism.reaction(i))):
+#                print(original_mechanism.reaction(i).high_rate)
+#                print(original_mechanism.reaction(i).low_rate)
     if master_rxns:
         for i in np.arange(master_reactions.n_reactions):
+            print(master_reactions.reaction(i).rate)
             NewModel.add_reaction(master_reactions.reaction(i))
-        
+    
+    #print(master_reactions.reaction(0).rate)
+    
+
+    
+    
     if x=={}:
-        for j in np.arange(original_rxn_count):
+        
+        
+        for j in np.arange(original_rxn_count-1):
            
-           if master_index[j]:
-               if 'ThreeBodyReaction' in str(type(original_mechanism.reaction(j))):
-                   NewModel.reaction(j).rate=original_mechanism.reaction(j).rate
-               elif 'ElementaryReaction' in str(type(original_mechanism.reaction(j))):
-                   NewModel.reaction(j).rate=original_mechanism.reaction(j).rate
-               elif 'FalloffReaction' in str(type(original_mechanism.reaction(j))):
-                   NewModel.reaction(j).high_rate=original_mechanism.reaction(j).high_rate
-                   NewModel.reaction(j).low_rate=original_mechanism.reaction(j).low_rate
-                   
-                   if original_mechanism.reaction(j).falloff.type=='Troe':
-                       NewModel.reaction(j).falloff=original_mechanism.reaction(j).falloff
-                   if original_mechanism.reaction(j).falloff.type=='Sri':
-                       NewModel.reaction(j).falloff=original_mechanism.reaction(j).falloff
-               elif 'ChemicallyActivatedReaction' in str(type(original_mechanism.reaction(j))):
-                   NewModel.reaction(j).high_rate=original_mechanism.reaction(j).high_rate
-                   NewModel.reaction(j).low_rate=original_mechanism.reaction(j).low_rate
-                   if original_mechanism.reaction(j).falloff.type=='Troe':
-                       NewModel.reaction(j).falloff=original_mechanism.reaction(j).falloff
-                   if original_mechanism.reaction(j).falloff.type=='Sri':
-                       NewModel.reaction(j).falloff=original_mechanism.reaction(j).falloff
-               elif 'PlogReaction' in str(type(original_mechanism.reaction(j))):
-                   NewModel.reaction(j).rates=original_mechanism.reaction(j).rates
-               elif 'ChebyshevReaction' in str(type(original_mechanism.reaction(j))):
-                   NewModel.reaction(j).set_parameters(original_mechanism.reaction(j).Tmin,original_mechanism.reaction(j).Tmax,original_mechanism.reaction(j).Pmin,original_mechanism.reaction(j).Pmax,original_mechanism.reaction(j).coeffs)
+           #if master_index[j]:
+               #print(str(type(original_mechanism.reaction(j))),str(type(NewModel.reaction(j))))
+               if 'ThreeBodyReaction' in str(type(NewModel.reaction(j))):
+                   NewModel.reaction(j).rate=NewModel.reaction(j).rate
+               elif 'ElementaryReaction' in str(type(NewModel.reaction(j))):
+                   NewModel.reaction(j).rate=NewModel.reaction(j).rate
+               elif 'FalloffReaction' in str(type(NewModel.reaction(j))):
+                   NewModel.reaction(j).high_rate=NewModel.reaction(j).high_rate
+                   NewModel.reaction(j).low_rate=NewModel.reaction(j).low_rate
+
+                   if NewModel.reaction(j).falloff.type=='Troe':
+                       NewModel.reaction(j).falloff=NewModel.reaction(j).falloff
+                   if NewModel.reaction(j).falloff.type=='Sri':
+                       NewModel.reaction(j).falloff=NewModel.reaction(j).falloff
+               elif 'ChemicallyActivatedReaction' in str(type(NewModel.reaction(j))):
+                   NewModel.reaction(j).high_rate=NewModel.reaction(j).high_rate
+                   NewModel.reaction(j).low_rate=NewModel.reaction(j).low_rate
+                   if NewModel.reaction(j).falloff.type=='Troe':
+                       NewModel.reaction(j).falloff=NewModel.reaction(j).falloff
+                   if NewModel.reaction(j).falloff.type=='Sri':
+                       NewModel.reaction(j).falloff=NewModel.reaction(j).falloff
+               elif 'PlogReaction' in str(type(NewModel.reaction(j))):
+                   NewModel.reaction(j).rates=NewModel.reaction(j).rates
+               elif 'ChebyshevReaction' in str(type(NewModel.reaction(j))):
+                   NewModel.reaction(j).set_parameters(NewModel.reaction(j).Tmin,NewModel.reaction(j).Tmax,NewModel.reaction(j).Pmin,NewModel.reaction(j).Pmax,NewModel.reaction(j).coeffs)
+    
+    #Rinv = 1/R #cal/mol*K
+    E = 1 #going test for energy
+    T = 4.186e3
     if x!={}:
-        for j in np.arange(original_mechanism.n_reactions):
-           if master_index[j]:
+        
+        for j in np.arange(original_rxn_count-1):
+           #if master_index[j]:
                try:
-                   if 'ThreeBodyReaction' in str(type(original_mechanism.reaction(j))):
-                       A=original_mechanism.reaction(j).rate.pre_exponential_factor
-                       n=original_mechanism.reaction(j).rate.temperature_exponent
-                       Ea=original_mechanism.reaction(j).rate.activation_energy
-                       NewModel.reaction(j).rate=ct.Arrhenius(A*np.exp(x['r'+str(j)]['A']),n+x['r'+str(j)]['n'],Ea+x['r'+str(j)]['Ea'])
-                   elif 'ElementaryReaction' in str(type(original_mechanism.reaction(j))):
-                       A=original_mechanism.reaction(j).rate.pre_exponential_factor
-                       n=original_mechanism.reaction(j).rate.temperature_exponent
-                       Ea=original_mechanism.reaction(j).rate.activation_energy
-                       NewModel.reaction(j).rate=ct.Arrhenius(A*np.exp(x['r'+str(j)]['A']),n+x['r'+str(j)]['n'],Ea+x['r'+str(j)]['Ea'])
-                   elif 'FalloffReaction' in str(type(original_mechanism.reaction(j))):
-                       A=original_mechanism.reaction(j).high_rate.pre_exponential_factor
-                       n=original_mechanism.reaction(j).high_rate.temperature_exponent
-                       Ea=original_mechanism.reaction(j).high_rate.activation_energy
-                       NewModel.reaction(j).high_rate=ct.Arrhenius(A*np.exp(x['r'+str(j)]['A']),n+x['r'+str(j)]['n'],Ea+x['r'+str(j)]['Ea'])
-                       A=original_mechanism.reaction(j).low_rate.pre_exponential_factor
-                       n=original_mechanism.reaction(j).low_rate.temperature_exponent
-                       Ea=original_mechanism.reaction(j).low_rate.activation_energy
-                       NewModel.reaction(j).low_rate=ct.Arrhenius(A*np.exp(x['r'+str(j)]['A']),n+x['r'+str(j)]['n'],Ea+x['r'+str(j)]['Ea'])
-                       if original_mechanism.reaction(j).falloff.type=='Troe':
-                           NewModel.reaction(j).falloff=original_mechanism.reaction(j).falloff
-                       if original_mechanism.reaction(j).falloff.type=='Sri':
-                           NewModel.reaction(j).falloff=original_mechanism.reaction(j).falloff
-                   elif 'ChemicallyActivatedReaction' in str(type(original_mechanism.reaction(j))):
-                       A=original_mechanism.reaction(j).high_rate.pre_exponential_factor
-                       n=original_mechanism.reaction(j).high_rate.temperature_exponent
-                       Ea=original_mechanism.reaction(j).high_rate.activation_energy
-                       NewModel.reaction(j).high_rate=ct.Arrhenius(A*np.exp(x['r'+str(j)]['A']),n+x['r'+str(j)]['n'],Ea+x['r'+str(j)]['Ea'])
-                       A=original_mechanism.reaction(j).low_rate.pre_exponential_factor
-                       n=original_mechanism.reaction(j).low_rate.temperature_exponent
-                       Ea=original_mechanism.reaction(j).low_rate.activation_energy
-                       NewModel.reaction(j).low_rate=ct.Arrhenius(A*np.exp(x['r'+str(j)]['A']),n+x['r'+str(j)]['n'],Ea+x['r'+str(j)]['Ea'])
-                       if original_mechanism.reaction(j).falloff.type=='Troe':
-                           NewModel.reaction(j).falloff=original_mechanism.reaction(j).falloff
-                       if original_mechanism.reaction(j).falloff.type=='Sri':
-                           NewModel.reaction(j).falloff=original_mechanism.reaction(j).falloff
-                   elif 'PlogReaction' in str(type(original_mechanism.reaction(j))):
-                       NewModel.reaction(j).rates=original_mechanism.reaction(j).rates
+                   if 'ThreeBodyReaction' in str(type(NewModel.reaction(j))):
+                       A=NewModel.reaction(j).rate.pre_exponential_factor
+                       n=NewModel.reaction(j).rate.temperature_exponent
+                       Ea=NewModel.reaction(j).rate.activation_energy
+                       NewModel.reaction(j).rate=ct.Arrhenius(A*np.exp(x['r'+str(j)]['A']),n+x['r'+str(j)]['n'],Ea+x['r'+str(j)]['Ea']*T)
+                   elif 'ElementaryReaction' in str(type(NewModel.reaction(j))):
+                       A=NewModel.reaction(j).rate.pre_exponential_factor
+                       n=NewModel.reaction(j).rate.temperature_exponent
+                       Ea=NewModel.reaction(j).rate.activation_energy
+                       NewModel.reaction(j).rate=ct.Arrhenius(A*np.exp(x['r'+str(j)]['A']),n+x['r'+str(j)]['n'],Ea+x['r'+str(j)]['Ea']*T)
+                   elif 'FalloffReaction' in str(type(NewModel.reaction(j))):
+                       A=NewModel.reaction(j).high_rate.pre_exponential_factor
+                       n=NewModel.reaction(j).high_rate.temperature_exponent
+                       Ea=NewModel.reaction(j).high_rate.activation_energy
+                       
+                       NewModel.reaction(j).high_rate=ct.Arrhenius(A*np.exp(x['r'+str(j)]['A']),n+x['r'+str(j)]['n'],Ea+x['r'+str(j)]['Ea']*T)
+                       A=NewModel.reaction(j).low_rate.pre_exponential_factor
+                       n=NewModel.reaction(j).low_rate.temperature_exponent
+                       Ea=NewModel.reaction(j).low_rate.activation_energy
+                       NewModel.reaction(j).low_rate=ct.Arrhenius(A*np.exp(x['r'+str(j)]['A']),n+x['r'+str(j)]['n'],Ea+x['r'+str(j)]['Ea']*T)
+                       if NewModel.reaction(j).falloff.type=='Troe':
+                           NewModel.reaction(j).falloff=NewModel.reaction(j).falloff
+                       if NewModel.reaction(j).falloff.type=='Sri':
+                           NewModel.reaction(j).falloff=NewModel.reaction(j).falloff
+                   elif 'ChemicallyActivatedReaction' in str(type(NewModel.reaction(j))):
+                       A=NewModel.reaction(j).high_rate.pre_exponential_factor
+                       n=NewModel.reaction(j).high_rate.temperature_exponent
+                       Ea=NewModel.reaction(j).high_rate.activation_energy
+                       NewModel.reaction(j).high_rate=ct.Arrhenius(A*np.exp(x['r'+str(j)]['A']),n+x['r'+str(j)]['n'],Ea+x['r'+str(j)]['Ea']*T)
+                       A=NewModel.reaction(j).low_rate.pre_exponential_factor
+                       n=NewModel.reaction(j).low_rate.temperature_exponent
+                       Ea=NewModel.reaction(j).low_rate.activation_energy
+                       NewModel.reaction(j).low_rate=ct.Arrhenius(A*np.exp(x['r'+str(j)]['A']),n+x['r'+str(j)]['n'],Ea+x['r'+str(j)]['Ea']*T)
+                       if NewModel.reaction(j).falloff.type=='Troe':
+                           NewModel.reaction(j).falloff=NewModel.reaction(j).falloff
+                       if NewModel.reaction(j).falloff.type=='Sri':
+                           NewModel.reaction(j).falloff=NewModel.reaction(j).falloff
+                   elif 'PlogReaction' in str(type(NewModel.reaction(j))):
+                       for number, reactions in enumerate(NewModel.reaction(j).rates):
+                           A = NewModel.reaction(j)[number][1].pre_exponential_factor
+                           n = NewModel.reaction(j)[number][1].temperature_exponent
+                           Ea = NewModel.reaction(j)[number][1].activation_energy
+                           NewModel.reaction(j)[number][1] = ct.Arrhenius(A*np.exp(x['r'+str(j)]['A']),n+x['r'+str(j)]['n'],Ea+x['r'+str(j)]['Ea']*T)                      
+                       NewModel.reaction(j).rates=NewModel.reaction(j).rates                      
                    elif 'ChebyshevReaction' in str(type(original_mechanism.reaction(j))):
-                       NewModel.reaction(j).set_parameters(original_mechanism.reaction(j).Tmin,original_mechanism.reaction(j).Tmax,original_mechanism.reaction(j).Pmin,original_mechanism.reaction(j).Pmax,original_mechanism.reaction(j).coeffs)
+                       NewModel.reaction(j).set_parameters(NewModel.reaction(j).Tmin,NewModel.reaction(j).Tmax,NewModel.reaction(j).Pmin,NewModel.reaction(j).Pmax,NewModel.reaction(j).coeffs)
+                       
+                       
                except:
-                   if 'ThreeBodyReaction' in str(type(original_mechanism.reaction(j))):
-                       NewModel.reaction(j).rate=original_mechanism.reaction(j).rate
-                   elif 'ElementaryReaction' in str(type(original_mechanism.reaction(j))):
-                       NewModel.reaction(j).rate=original_mechanism.reaction(j).rate
-                   elif 'FalloffReaction' in str(type(original_mechanism.reaction(j))):
-                       NewModel.reaction(j).high_rate=original_mechanism.reaction(j).high_rate
-                       NewModel.reaction(j).low_rate=original_mechanism.reaction(j).low_rate
-                       if original_mechanism.reaction(j).falloff.type=='Troe':
-                           NewModel.reaction(j).falloff=original_mechanism.reaction(j).falloff
-                       if original_mechanism.reaction(j).falloff.type=='Sri':
-                           NewModel.reaction(j).falloff=original_mechanism.reaction(j).falloff
-                   elif 'ChemicallyActivatedReaction' in str(type(original_mechanism.reaction(j))):
-                      NewModel.reaction(j).high_rate=original_mechanism.reaction(j).high_rate
-                      NewModel.reaction(j).low_rate=original_mechanism.reaction(j).low_rate
-                      if original_mechanism.reaction(j).falloff.type=='Troe':
-                          NewModel.reaction(j).falloff=original_mechanism.reaction(j).falloff
-                      if original_mechanism.reaction(j).falloff.type=='Sri':
-                          NewModel.reaction(j).falloff=original_mechanism.reaction(j).falloff
-                   elif 'PlogReaction' in str(type(original_mechanism.reaction(j))):
-                      NewModel.reaction(j).rates=original_mechanism.reaction(j).rates
+                   print ('we are in the except statment in marks code',j)
+                   if 'ThreeBodyReaction' in str(type(NewModel.reaction(j))):
+                       NewModel.reaction(j).rate=NewModel.reaction(j).rate
+                   elif 'ElementaryReaction' in str(type(NewModel.reaction(j))):
+                       NewModel.reaction(j).rate=NewModel.reaction(j).rate
+                   elif 'FalloffReaction' in str(type(NewModel.reaction(j))):
+                       NewModel.reaction(j).high_rate=NewModel.reaction(j).high_rate
+                       NewModel.reaction(j).low_rate=NewModel.reaction(j).low_rate
+                       if NewModel.reaction(j).falloff.type=='Troe':
+                           NewModel.reaction(j).falloff=NewModel.reaction(j).falloff
+                       if NewModel.reaction(j).falloff.type=='Sri':
+                           NewModel.reaction(j).falloff=NewModel.reaction(j).falloff
+                   elif 'ChemicallyActivatedReaction' in str(type(NewModel.reaction(j))):
+                      NewModel.reaction(j).high_rate=NewModel.reaction(j).high_rate
+                      NewModel.reaction(j).low_rate=NewModel.reaction(j).low_rate
+                      if NewModel.reaction(j).falloff.type=='Troe':
+                          NewModel.reaction(j).falloff=NewModel.reaction(j).falloff
+                      if NewModel.reaction(j).falloff.type=='Sri':
+                          NewModel.reaction(j).falloff=NewModel.reaction(j).falloff
+                   elif 'PlogReaction' in str(type(NewModel.reaction(j))):
+                      NewModel.reaction(j).rates=NewModel.reaction(j).rates
+                   elif 'ChebyshevReaction' in str(type(NewModel.reaction(j))):
+                      NewModel.reaction(j).set_parameters(NewModel.reaction(j).Tmin,NewModel.reaction(j).Tmax,NewModel.reaction(j).Pmin,NewModel.reaction(j).Pmax,NewModel.reaction(j).coeffs)
+    if MP!={}:   
+        print('insdie the MP if statment')           
+        for j in np.arange(original_rxn_count,NewModel.n_reactions):
+           
+               try:
+                   if 'ThreeBodyReaction' in str(type(NewModel.reaction(j))):
+                       A=NewModel.reaction(j).rate.pre_exponential_factor
+                       n=NewModel.reaction(j).rate.temperature_exponent
+                       Ea=NewModel.reaction(j).rate.activation_energy
+                       NewModel.reaction(j).rate=ct.Arrhenius(A*np.exp(MP['r'+str(j)]['A']),n+MP['r'+str(j)]['n'],Ea+MP['r'+str(j)]['Ea']*E)
+                   elif 'ElementaryReaction' in str(type(NewModel.reaction(j))):
+                       A=NewModel.reaction(j).rate.pre_exponential_factor
+                       n=NewModel.reaction(j).rate.temperature_exponent
+                       Ea=NewModel.reaction(j).rate.activation_energy
+                       NewModel.reaction(j).rate=ct.Arrhenius(A*np.exp(MP['r'+str(j)]['A']),n+MP['r'+str(j)]['n'],Ea+MP['r'+str(j)]['Ea']*E)
+                   elif 'FalloffReaction' in str(type(NewModel.reaction(j))):
+                       A=NewModel.reaction(j).high_rate.pre_exponential_factor
+                       n=NewModel.reaction(j).high_rate.temperature_exponent
+                       Ea=NewModel.reaction(j).high_rate.activation_energy
+                       
+                       NewModel.reaction(j).high_rate=ct.Arrhenius(A*np.exp(MP['r'+str(j)]['A']),n+MP['r'+str(j)]['n'],Ea+MP['r'+str(j)]['Ea']*E)
+                       A=NewModel.reaction(j).low_rate.pre_exponential_factor
+                       n=NewModel.reaction(j).low_rate.temperature_exponent
+                       Ea=NewModel.reaction(j).low_rate.activation_energy
+                       NewModel.reaction(j).low_rate=ct.Arrhenius(A*np.exp(MP['r'+str(j)]['A']),n+MP['r'+str(j)]['n'],Ea+MP['r'+str(j)]['Ea']*E)
+                       if NewModel.reaction(j).falloff.type=='Troe':
+                           NewModel.reaction(j).falloff=NewModel.reaction(j).falloff
+                       if NewModel.reaction(j).falloff.type=='Sri':
+                           NewModel.reaction(j).falloff=NewModel.reaction(j).falloff
+                   elif 'ChemicallyActivatedReaction' in str(type(NewModel.reaction(j))):
+                       A=NewModel.reaction(j).high_rate.pre_exponential_factor
+                       n=NewModel.reaction(j).high_rate.temperature_exponent
+                       Ea=NewModel.reaction(j).high_rate.activation_energy
+                       NewModel.reaction(j).high_rate=ct.Arrhenius(A*np.exp(MP['r'+str(j)]['A']),n+MP['r'+str(j)]['n'],Ea+MP['r'+str(j)]['Ea']*E)
+                       A=NewModel.reaction(j).low_rate.pre_exponential_factor
+                       n=NewModel.reaction(j).low_rate.temperature_exponent
+                       Ea=NewModel.reaction(j).low_rate.activation_energy
+                       NewModel.reaction(j).low_rate=ct.Arrhenius(A*np.exp(MP['r'+str(j)]['A']),n+MP['r'+str(j)]['n'],Ea+MP['r'+str(j)]['Ea']*E)
+                       if NewModel.reaction(j).falloff.type=='Troe':
+                           NewModel.reaction(j).falloff=NewModel.reaction(j).falloff
+                       if NewModel.reaction(j).falloff.type=='Sri':
+                           NewModel.reaction(j).falloff=NewModel.reaction(j).falloff
+                   elif 'PlogReaction' in str(type(NewModel.reaction(j))):
+                       for number, reactions in enumerate(NewModel.reaction(j).rates):
+                           A = NewModel.reaction(j)[number][1].pre_exponential_factor
+                           n = NewModel.reaction(j)[number][1].temperature_exponent
+                           Ea = NewModel.reaction(j)[number][1].activation_energy
+                           NewModel.reaction(j)[number][1] = ct.Arrhenius(A*np.exp(MP['r'+str(j)]['A']),n+MP['r'+str(j)]['n'],Ea+MP['r'+str(j)]['Ea']*E)                      
+                       NewModel.reaction(j).rates=NewModel.reaction(j).rates                      
                    elif 'ChebyshevReaction' in str(type(original_mechanism.reaction(j))):
-                      NewModel.reaction(j).set_parameters(original_mechanism.reaction(j).Tmin,original_mechanism.reaction(j).Tmax,original_mechanism.reaction(j).Pmin,original_mechanism.reaction(j).Pmax,original_mechanism.reaction(j).coeffs)
+                       NewModel.reaction(j).set_parameters(NewModel.reaction(j).Tmin,NewModel.reaction(j).Tmax,NewModel.reaction(j).Pmin,NewModel.reaction(j).Pmax,NewModel.reaction(j).coeffs)
+                       
+                       
+               except:
+                   print ('we are in the except statment in marks code',j)
+                   if 'ThreeBodyReaction' in str(type(NewModel.reaction(j))):
+                       NewModel.reaction(j).rate=NewModel.reaction(j).rate
+                   elif 'ElementaryReaction' in str(type(NewModel.reaction(j))):
+                       NewModel.reaction(j).rate=NewModel.reaction(j).rate
+                   elif 'FalloffReaction' in str(type(NewModel.reaction(j))):
+                       NewModel.reaction(j).high_rate=NewModel.reaction(j).high_rate
+                       NewModel.reaction(j).low_rate=NewModel.reaction(j).low_rate
+                       if NewModel.reaction(j).falloff.type=='Troe':
+                           NewModel.reaction(j).falloff=NewModel.reaction(j).falloff
+                       if NewModel.reaction(j).falloff.type=='Sri':
+                           NewModel.reaction(j).falloff=NewModel.reaction(j).falloff
+                   elif 'ChemicallyActivatedReaction' in str(type(NewModel.reaction(j))):
+                      NewModel.reaction(j).high_rate=NewModel.reaction(j).high_rate
+                      NewModel.reaction(j).low_rate=NewModel.reaction(j).low_rate
+                      if NewModel.reaction(j).falloff.type=='Troe':
+                          NewModel.reaction(j).falloff=NewModel.reaction(j).falloff
+                      if NewModel.reaction(j).falloff.type=='Sri':
+                          NewModel.reaction(j).falloff=NewModel.reaction(j).falloff
+                   elif 'PlogReaction' in str(type(NewModel.reaction(j))):
+                      NewModel.reaction(j).rates=NewModel.reaction(j).rates
+                   elif 'ChebyshevReaction' in str(type(NewModel.reaction(j))):
+                      NewModel.reaction(j).set_parameters(NewModel.reaction(j).Tmin,NewModel.reaction(j).Tmax,NewModel.reaction(j).Pmin,NewModel.reaction(j).Pmax,NewModel.reaction(j).coeffs)                      
                    
                
     
