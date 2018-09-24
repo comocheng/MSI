@@ -356,6 +356,10 @@ def write(solution,filearg):
             composition = replace_multiple(
                                             str(species.composition),
                                                 replace_list_1)
+            composition='\"'
+            for el in np.arange(len(species.composition.keys())):
+                composition=composition+species.composition.keys()[el]+':'+str(int(species.composition.values()[el]))+' '
+            composition=composition.rstrip(' ')+'\"'
             nasa_range_1 = str([species.thermo.min_temp, nasa_coeffs[0]])
             nasa_range_2 = str([nasa_coeffs[0], species.thermo.max_temp])
             #check if species has defined transport data
