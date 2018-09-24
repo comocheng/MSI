@@ -155,15 +155,28 @@ def write(solution,filearg):
                 dictlength=0
                 try:
                     dictlength=equation_object.products.values()[0]
+                    #reaclength=equation_object.reactants.values()[0]
                 except:
                     pass           
                 
-                
-                if len(equation_object.products) == 1 and dictlength==1.0:
+                prodcount=0
+                reaccount=0
+                for num in np.arange(len(equation_object.products.values())):
+                    prodcount=prodcount+equation_object.products.values()[num]
+                for num in np.arange(len(equation_object.reactants.values())):
+                    reaccount=reaccount+equation_object.reactants.values()[num]
                     
                     
-                    pre_exponential_factor = str(
-                                    '{:.5E}'.format(pre_exponential_factor*10**3))
+                if prodcount==1.0 and reaccount==1.0:
+                    not_single_and_equal=False
+                else:
+                    not_single_and_equal=True
+                if len(equation_object.products) == 1 and dictlength==1.0 and not_single_and_equal:
+                    
+                    
+                        pre_exponential_factor = str(
+                                        '{:.5E}'.format(pre_exponential_factor*10**3))
+                    
                 else:
                     pre_exponential_factor = str(
                                     '{:.5E}'.format(pre_exponential_factor))
@@ -183,7 +196,22 @@ def write(solution,filearg):
                     dictlength=equation_object.products.values()[0]
                 except:
                     pass 
-                if len(equation_object.products) == 1 and dictlength==1.0:
+                
+                prodcount=0
+                reaccount=0
+                for num in np.arange(len(equation_object.products.values())):
+                    prodcount=prodcount+equation_object.products.values()[num]
+                for num in np.arange(len(equation_object.reactants.values())):
+                    reaccount=reaccount+equation_object.reactants.values()[num]
+                    
+                    
+                if prodcount==1.0 and reaccount==1.0:
+                    not_single_and_equal=False
+                else:
+                    not_single_and_equal=True
+                
+                
+                if len(equation_object.products) == 1 and dictlength==1.0 and not_single_and_equal:
                     pre_exponential_factor = str(
                                     '{:.5E}'.format(pre_exponential_factor*10**6))
                 else:
