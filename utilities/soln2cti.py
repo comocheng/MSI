@@ -195,23 +195,40 @@ def write(solution,filearg):
                                 ]
                 return str(arrhenius_low).replace("\'", "")
 
-        def build_falloff(j):
-            """
-            Creates falloff reaction Troe parameter string
-
-            param j:
-                Cantera falloff parameters object
-            """
-            falloff_string = str(
-                        ',\n        falloff = Troe(' +
-                        'A = ' + str(j[0]) +
-                        ', T3 = ' + str(j[1]) +
-                        ', T1 = ' + str(j[2]) + ')       )\n\n'
-                        )
-            if j[3]!=0.0:
-                falloff_string=falloff_string.rstrip(')       )\n\n')+', T2 = ' + str(j[3]) + ')       )\n\n'
-            return falloff_string
-
+        def build_falloff(eq,j):
+            #print(eq,j)
+            if eq.falloff.type=='Troe':
+                """
+                Creates falloff reaction Troe parameter string
+    
+                param j:
+                    Cantera falloff parameters object
+                """
+                falloff_string = str(
+                            ',\n        falloff = Troe(' +
+                            'A = ' + str(j[0]) +
+                            ', T3 = ' + str(j[1]) +
+                            ', T1 = ' + str(j[2]) + ')       )\n\n'
+                            )
+                if j[3]!=0.0:
+                    falloff_string=falloff_string.rstrip(')       )\n\n')+', T2 = ' + str(j[3]) + ')       )\n\n'
+                return falloff_string
+            elif eq.falloff.type=='SRI':
+                falloff_string = str(
+                            ',\n        falloff = SRI(' +
+                            'A = ' + str(j[0]) +
+                            ', B = ' + str(j[1]) +
+                            ', C = ' + str(j[2]) + ')       )\n\n'
+                            )
+                if j[3]!=1.0:
+                    falloff_string=falloff_string.rstrip(')       )\n\n')+', D = ' + str(j[3]) + ')       )\n\n'
+                
+                if j[4]!=0.0:
+                    falloff_string=falloff_string.rstrip(')       )\n\n')+', E = ' + str(j[3]) + ')       )\n\n'
+                
+                return falloff_string
+                    
+                    
         def build_species_string():
             """
             Formats species list at top of mechanism file
@@ -510,10 +527,15 @@ def write(solution,filearg):
                         ))
                 j = equation_object.falloff.parameters
                 #If optional Arrhenius data included:
-                try:
-                    falloff_str = build_falloff(j)
-                    f.write(falloff_str)
-                except IndexError:
+                
+                if equation_object.falloff.type!='Simple':
+                    try:
+                        falloff_str = build_falloff(equation_object,j)
+                        #print(falloff_str)
+                        f.write(falloff_str)
+                    except IndexError:
+                        f.write('\n           )\n\n')
+                elif equation_object.falloff.type=='Simple':
                     f.write('\n           )\n\n')
             if equation_type=='PlogReaction':
                 f.write('#  Reaction '+str(m)+'\n')
