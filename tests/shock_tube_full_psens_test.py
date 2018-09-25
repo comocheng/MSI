@@ -32,6 +32,12 @@ int_tp_psen_against_experimental = test_tube.interpolate_experimental([test_tube
                                                                     test_tube.interpolate_physical_sensitivities(index=2)])
 int_spec_psen_against_experimental = test_tube.interpolate_experimental(pre_interpolated=test_tube.interpolate_species_sensitivities())
 
-print(int_tp_psen_against_experimental)
-print(int_spec_psen_against_experimental)
+#print(int_tp_psen_against_experimental)
+#print(int_spec_psen_against_experimental)
+
+
+#########################
+#sensitivity test
+time_histories = test_tube.timeHistories
+dk = test_tube.dk
 

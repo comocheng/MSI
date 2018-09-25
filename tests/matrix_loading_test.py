@@ -99,19 +99,22 @@ int_spec_psen_against_experimental2 = test_tube2.interpolate_experimental(pre_in
  ####################################
 # Stick the two experiments together #
  ####################################
+list_of_interpolated_kinetic_sens = [int_ksens_exp_mapped,int_ksens_exp_mapped2]
+list_of_interpolated_tp_sens = [int_tp_psen_against_experimental,int_tp_psen_against_experimental2]
+list_of_interpolated_species_sens = [int_spec_psen_against_experimental,int_spec_psen_against_experimental2]
 #def build_single_exp_dict(self,exp_index:int,
 #                          simulation:sim.instruments.shock_tube.shockTube,
 #                          interpolated_kinetic_sens:dict,
 #                          interpolated_tp_sens:list,
 #                          interpolated_species_sens:list,
 #                          interpolated_absorbance:list=[]):
- 
-exp_1 = opt.build_single_exp_dict(1,test_tube,
+optimization_instance = opt.Optimization_Utility() 
+exp_1 = optimization_instance.build_single_exp_dict(1,test_tube,
                                   int_ksens_exp_mapped,
                                   int_tp_psen_against_experimental,
                                   int_spec_psen_against_experimental) #no absorbance in experiment 1
  
-exp_2 = opt.build_single_exp_dict(2,test_tube2,
+exp_2 = optimization_instance.build_single_exp_dict(2,test_tube2,
                                   int_ksens_exp_mapped2,
                                   int_tp_psen_against_experimental2,
                                   int_spec_psen_against_experimental2,
