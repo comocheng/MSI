@@ -9,6 +9,7 @@ import textwrap
 from string import Template
 import numpy as np
 import cantera as ct
+from decimal import Decimal
 
 def write(solution,filearg):
     """Function to write cantera solution object to cti file.
