@@ -6,6 +6,7 @@ class Absorb:
     def __init__(self):
         self.saved_abs_data = []
         self.saved_perturb_data = [] 
+        self.timeHistoryInterpToAbsorbaceExperiment = None
     def perturb_abs_coef(self,del_param:float,simulation:sim.instruments.shock_tube.shockTube,
                     absorb:dict,pathlength:float,
                     absorbance_csv_files:list=[],
@@ -44,7 +45,7 @@ class Absorb:
                     else:                                
                         self.saved_perturb_data.append([(species,species_and_wavelengths[species][index],cc),
                                                         self.ln_abs(changed_data,summed_data,dk=orig_cc[0]*del_param)])
-
+#somewehre around her e
                 if orig_cc[1] != 0:    
                     if species_and_functional_form[species][i] != 'B':
                         cc = (orig_cc[0],orig_cc[1]+orig_cc[1]*del_param)
@@ -76,6 +77,7 @@ class Absorb:
 
                 species_and_coupled_coefficients[species][i] = orig_cc
                 index += 1
+                
         return self.saved_perturb_data
     
     def superimpose_shock_tube(self,simulation:sim.instruments.shock_tube.shockTube,
@@ -147,7 +149,25 @@ class Absorb:
                                  abs_kinetic_sens=None,
                                  map_kinetic_sens=1,
                                  abs_phys_sens=None,
-                                 abs_coef_sens=None):
+                                 abs_coef_sens=None,
+                                 time_history=None):
+        if time_history is not None:
+            dic = {}
+            p_and_t = ['pressure','temperature']
+            for df in experimental_data:
+                temp = []
+                for variable in p_and_t:
+                    interpolated_data = np.interp(df['time'],simulation.timeHistories[0]['time'],simulation.timeHistories[0][variable])
+                    interpolated_data = interpolated_data.reshape((interpolated_data.shape[0],1))
+                    temp.append(interpolated_data)
+                temp = np.hstack(temp)    
+                temp = pd.DataFrame(temp)
+                temp.columns = p_and_t
+                dic[int(df.columns.tolist()[1][-3:])] = temp
+                self.timeHistoryInterpToAbsorbaceExperiment = dic
+            return dic
+                
+                
         if original_summed_absorption is None and abs_kinetic_sens is None and absorbance_phys_sens is None and abs_coef_sens is None:
             print("Error: must give something to interpolate")
             return -1
@@ -172,6 +192,7 @@ class Absorb:
             if original_summed_absorption is not None:
                 #get the wavelength of the csv file and match to the dict entry
                 wavelength = int(time_absorb.columns.values[1].split("_")[1])
+                #print(original_summed_absorption)
                 data_to_interpolate = original_summed_absorption[wavelength]
                 #construct dataframe for the interpolation using the OG time history
                 interpolated_data = np.interp(time_absorb['time'],simulation.timeHistories[0]['time'],data_to_interpolate)
@@ -226,6 +247,8 @@ class Absorb:
                     interp_abs_coef_sens[i][1][wavelength] = interpolated_data
 
         return [interp_original,interp_abs_kinetic_sens,interp_abs_phys_sens,interp_abs_coef_sens]
+    
+    
     
     def import_experimental_data(self, absorbance_csv_files:list=[]): 
         if len(absorbance_csv_files) == 0:
@@ -339,7 +362,7 @@ class Absorb:
                         epsilon = np.ones(shape=temperature_matrix.shape)
                         epsilon *= cc[0]
                 if wavelength == 215: #does this really need to be here, takes care of specific paper case?
-                   epsilon *= 1000
+                   epsilon *= 1
                 
                 concentration = np.true_divide(1,temperature_matrix.flatten())*pressure_matrix.flatten()
                 concentration *= (1/(8.314e6))*simulation.timeHistories[0][species].values.flatten()
@@ -378,7 +401,7 @@ class Absorb:
                 epsilon *= cc[0]
 
         if wavelength == 215: #does this really need to be here?
-           epsilon *= 1000
+           epsilon *= 1
            #multiplying by 1000 to convert from L to cm^3 from the epsilon given in paper 
            #this applies if the units on epsilon are given as they are in kappl paper 
            #must calcuate and pass in reactor volume 
@@ -414,6 +437,7 @@ class Absorb:
             return -1
 
         coupled_coefficients = [list(zip(parameter_ones[x],parameter_twos[x])) for x in range(len(parameter_ones))]
+        
         return coupled_coefficients 
 
 

@@ -14,7 +14,8 @@ class shockTube(sim.Simulation):
                  initialTime,finalTime,thermalBoundary,mechanicalBoundary,
                  processor:ctp.Processor=None,cti_path="",save_timeHistories:int=0, 
                  save_physSensHistories=0,moleFractionObservables:list=[],
-                 absorbanceObservables:list=[],concentrationObservables:list=[]):
+                 absorbanceObservables:list=[],concentrationObservables:list=[],
+                 fullParsedYamlFile:dict={}):
 
         '''
         Child class of shock Tubes. Inherits all attributes and
@@ -42,15 +43,19 @@ class shockTube(sim.Simulation):
         self.concentrationObservables = concentrationObservables
         self.moleFractionObservables = moleFractionObservables
         self.absorbanceObservables = absorbanceObservables
+        self.fullParsedYamlFile =  fullParsedYamlFile
+
         if save_timeHistories == 1:
             self.timeHistories=[]
             self.timeHistoryInterpToExperiment = None
+            self.pressureAndTemperatureToExperiment = None
         else:
             self.timeHistories=None
         if save_physSensHistories == 1:
             self.physSensHistories = []
         self.setTPX()
         self.dk = [0]
+        
     def printVars(self):
         print('initial time: {0}\nfinal time: {1}\n'.format(self.initialTime,self.finalTime),
               '\nthermalBoundary: {0}\nmechanicalBoundary: {1}'.format(self.thermalBoundary,self.mechanicalBoundary),
@@ -403,6 +408,8 @@ class shockTube(sim.Simulation):
 
     
     def importExperimentalData(self,csvFileList):
+        print('Importing shock tube data the following csv files...') 
+        print(csvFileList)
         experimentalData = [pd.read_csv(csv) for csv in csvFileList]
         experimentalData = [experimentalData[x].dropna(how='any') for x in range(len(experimentalData))]
         experimentalData = [experimentalData[x].apply(pd.to_numeric, errors = 'coerce').dropna() for x in range(len(experimentalData))]
@@ -411,3 +418,19 @@ class shockTube(sim.Simulation):
 
     def savingInterpTimeHistoryAgainstExp(self,timeHistory):
         self.timeHistoryInterpToExperiment = timeHistory
+        
+    def interpolatePressureandTempToExperiment(self,simulation,experimental_data):
+        p_and_t = ['pressure','temperature']
+        list_of_df = []
+        for df in experimental_data:
+            temp = []
+            for variable in p_and_t:
+                interpolated_data = np.interp(df['Time'],simulation.timeHistories[0]['time'],simulation.timeHistories[0][variable])
+                interpolated_data = interpolated_data.reshape((interpolated_data.shape[0],1))
+                temp.append(interpolated_data)                
+            temp = np.hstack(temp)    
+            temp = pd.DataFrame(temp)
+            temp.columns = p_and_t
+            list_of_df.append(temp)
+            self.pressureAndTemperatureToExperiment = list_of_df
+        return list_of_df

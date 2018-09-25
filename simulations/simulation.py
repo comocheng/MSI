@@ -1,4 +1,5 @@
 from ..cti_core import cti_processor as ctp
+import copy
 
 class Simulation(object):
     pasc_to_atm = 101325
@@ -30,24 +31,32 @@ class Simulation(object):
         self.physicalSens = physicalSens
         self.conditions = conditions
         self.dk = []        
-    def setTPX(self,temperature:float=-1,pressure:float=-1,conditions:dict={}):
+    def setTPX(self,temperature:float=-1,pressure:float=-1,conditions_perturb:dict={},reset_value={}):
         '''
         Set solution object for a simulation
         '''
+        
         if temperature== -1:
             temperature = self.temperature
         if pressure == -1:
             pressure = self.pressure
-        if conditions == {}:
-            conditions = self.conditions
+        if conditions_perturb == {}:
+            new_conditions = self.conditions
         else:
-            conditions_copy = self.conditions
-            for x in conditions.keys():
+            conditions_copy = copy.deepcopy(self.conditions)
+            for x in conditions_perturb.keys():
                 if x != '':
-                    conditions_copy[x] = conditions_copy[x]+conditions[x]
-            conditions = conditions_copy 
-        self.processor.solution.TPX=temperature,pressure*self.pasc_to_atm,conditions
-    
+                    conditions_copy[x] = conditions_copy[x]+conditions_perturb[x]
+            new_conditions = conditions_copy 
+        print(new_conditions)
+        self.processor.solution.TPX=temperature,pressure*self.pasc_to_atm, new_conditions
+        #print(self.conditions)#stub
+        
+
+                
+       # rest conditions by looping over this direction and subtracting off the value and restting conditions ?
+       
+           
     #always overwritten since each simulation is very different
     def run(self):
         print("Error: Simulation class itself does not implement the run method, please run a child class")
@@ -58,15 +67,19 @@ class Simulation(object):
                                spec_pair:(str,float)=('',0.0)):
 
         if spec_pair[0] != '':
+            
+       
            self.setTPX(self.temperature+self.temperature*temp_del,
                    self.pressure+self.pressure*pres_del,
                    {spec_pair[0]:self.conditions[spec_pair[0]]*spec_pair[1]})
+           
         else:
            self.setTPX(self.temperature+self.temperature*temp_del,
                        self.pressure+self.pressure*pres_del)
         
         data = self.run()
-        self.setTPX()
+
+            
         return data
     
 
