@@ -11,7 +11,8 @@ and adds those reactions to create a complete internal mechanism
 
 import numpy as np
 import cantera as ct
-import soln2cti as ctiw
+import MSI.simulations
+import MSI.utilities.soln2cti_py3 as ctiw
 
 
 def cti_write(x={},original_cti='',master_rxns='',master_index=[]):
@@ -154,8 +155,9 @@ def cti_write(x={},original_cti='',master_rxns='',master_index=[]):
     
     new_file=ctiw.write(NewModel)
     return new_file
-def cti_write2(x={},original_cti='',master_rxns='',master_index=[],MP={}):
+def cti_write2(x={},original_cti='',master_rxns='',master_index=[],MP={},working_directory=''):
     print(MP)
+    
     if not original_cti:
         raise Exception('Please provide a name for the original mechanism file and try again.')
     if not master_rxns and np.any(master_index):
@@ -406,5 +408,6 @@ def cti_write2(x={},original_cti='',master_rxns='',master_index=[],MP={}):
                    
                
     
-    new_file=ctiw.write(NewModel)
+    new_file=ctiw.write(NewModel, cwd=working_directory)
+    #tab
     return new_file,original_rxn_eqs,master_rxn_eqs
