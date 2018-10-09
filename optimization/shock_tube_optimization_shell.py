@@ -7,6 +7,7 @@ import MSI.optimization.matrix_loader as ml
 import MSI.optimization.opt_runner as opt
 import MSI.simulations.absorbance.curve_superimpose as csp
 import MSI.simulations.yaml_parser as yp
+import MSI.master_equation.master_equation as meq
 import cantera as ct
 import numpy as np
 #
@@ -17,7 +18,9 @@ class MSI_shocktube_optimization(object):
                  kineticSens:int,physicalSens:int,
                  data_directory:str,yaml_file_list:list,
                  reaction_uncertainty_csv:str,
-                 k_target_values_csv:str):
+                 k_target_values_csv:str,
+                 master_equation_reactions:list=[],
+                 molecular_parameter_sensitivities:dict={}):
         
         self.cti_file_name = cti_file
         self.perturbment = perturbment
@@ -32,6 +35,12 @@ class MSI_shocktube_optimization(object):
         self.experiment_dictonaries = None
         self.reaction_uncertainty_csv = reaction_uncertainty_csv
         self.k_target_values_csv = k_target_values_csv
+        self.master_equation_reactions = master_equation_reactions
+        if bool(self.master_equation_reactions):
+            self.master_equation_flag = True
+        else:
+            self.master_equation_flag=False
+        self.sensitivity_dict = molecular_parameter_sensitivities
     # call all of leis functions where we do the molecular paramter stuff and turn a flag on 
     
     def append_working_directory(self):
@@ -74,7 +83,22 @@ class MSI_shocktube_optimization(object):
         
         self.experiment_dictonaries = experiment_dictonaries
         return
-    
+    def master_equation_s_matrix_building(self,loop_counter=0):
+        master_equation_instance = meq.Master_Equation()
+        self.master_equation_instance = master_equation_instance
+        mapped_to_alpha_full_simulation,nested_list = master_equation_instance.map_to_alpha(self.sensitivity_dict,
+                                                      self.experiment_dictonaries,
+                                                      self.list_of_parsed_yamls,
+                                                      self.master_equation_reactions)
+        
+        self.reactions_mapped_to_chebyshev_parameters = mapped_to_alpha_full_simulation
+        self.nested_list_for_MP_mapping = nested_list
+        MP_for_S_matrix = master_equation_instance.map_to_S(self.nested_list_for_MP_mapping,
+                                          self.sensitivity_dict,
+                                          self.master_equation_reactions)
+        self.MP_for_S_matrix = MP_for_S_matrix
+        return
+        
     def building_matrices(self,loop_counter=0):
         matrix_builder_instance = ml.OptMatrix()
         self.matrix_builder_instance = matrix_builder_instance
@@ -93,7 +117,11 @@ class MSI_shocktube_optimization(object):
     
     def adding_k_target_values(self):
         target_value_instance = ml.Adding_Target_Values(self.S_matrix,self.Y_matrix,self.z_matrix,self.sigma)
-        k_target_values_for_s = target_value_instance.target_values_for_S(self.data_directory +'/'+ self.k_target_values_csv,self.experiment_dictonaries)
+        k_target_values_for_s = target_value_instance.target_values_for_S(self.data_directory +'/'+ self.k_target_values_csv,
+                                                                          self.experiment_dictonaries,
+                                                                          master_equation_reaction_list = self.master_equation_reactions, 
+                                                                          master_equation_sensitivites = self.sensitivity_dict)
+        
         k_targets_for_y = target_value_instance.target_values_Y(self.data_directory +'/'+ self.k_target_values_csv ,self.experiment_dictonaries)
         k_targets_for_z,sigma = target_value_instance.target_values_for_Z(self.data_directory +'/'+ self.k_target_values_csv)
         S_matrix,Y_matrix,z_matrix,sigma = target_value_instance.appending_target_values(k_targets_for_z,k_targets_for_y,k_target_values_for_s,sigma)
@@ -109,12 +137,22 @@ class MSI_shocktube_optimization(object):
         self.X = X
         
         
-        deltaXAsNsEas,physical_observables,absorbance_coef_update_dict, X_to_subtract_from_Y = self.matrix_builder_instance.breakup_delta_x(self.X,
+
+        if self.master_equation_flag == True:
+            deltaXAsNsEas,physical_observables,absorbance_coef_update_dict, X_to_subtract_from_Y,delta_x_molecular_params_by_reaction_dict = self.matrix_builder_instance.breakup_delta_x(self.X,
                                                                                                                                           self.experiment_dictonaries,
                                                                                                                                             loop_counter=loop_counter)
+            self.delta_x_molecular_params_by_reaction_dict = delta_x_molecular_params_by_reaction_dict
+        else:
+            deltaXAsNsEas,physical_observables,absorbance_coef_update_dict, X_to_subtract_from_Y = self.matrix_builder_instance.breakup_delta_x(self.X,
+                                                                                                                                          self.experiment_dictonaries,
+                                                                                                                                            loop_counter=loop_counter)
+        
         self.physical_obervable_updates_list = physical_observables 
         self.absorbance_coef_update_dict = absorbance_coef_update_dict
         return
+    
+    
     
     def updating_files(self,loop_counter):
         updated_file_name_list = self.yaml_instance.yaml_file_updates(self.yaml_file_list_with_working_directory,
@@ -126,10 +164,23 @@ class MSI_shocktube_optimization(object):
         
         updated_absorption_file_name_list = self.yaml_instance.absorption_file_updates(self.updated_file_name_list,
                                                                                        self.list_of_parsed_yamls,
-                                                                                      self.experiment_dictonaries,
+                                                                                       self.experiment_dictonaries,
                                                                                        self.absorbance_coef_update_dict,
                                                                                        loop_counter = loop_counter)
         self.updated_absorption_file_name_list = updated_absorption_file_name_list
+        if self.master_equation_flag == True and loop_counter/1 == loop_counter:
+            master_equation_surrogate_model_update_dictonary = self.master_equation_instance.surrogate_model_molecular_parameters_chevy(self.sensitivity_dict,
+                                                                                     self.master_equation_reactions,
+                                                                                     self.delta_x_molecular_params_by_reaction_dict)
+            self.master_equation_surrogate_model_update_dictonary = master_equation_surrogate_model_update_dictonary
+            
+        #this may not be the best way to do this 
+        if self.master_equation_flag == True and loop_counter/1 != loop_counter:
+            master_equation_surrogate_model_update_dictonary = self.master_equation_instance.surrogate_model_molecular_parameters_chevy(self.sensitivity_dict,
+                                                                                     self.master_equation_reactions,
+                                                                                     self.delta_x_molecular_params_by_reaction_dict)
+            self.master_equation_surrogate_model_update_dictonary = master_equation_surrogate_model_update_dictonary
+
         
         #update the cti files pass in the renamed file 
         #self.processor.cti_write2(x={},original_cti='',master_rxns='',master_index=[],MP={})
@@ -144,8 +195,13 @@ class MSI_shocktube_optimization(object):
             original_experimental_conditions_local = self.yaml_instance.original_experimental_conditions
             self.original_experimental_conditions_local = original_experimental_conditions_local
         self.running_shock_tube_simulations()
+        if self.master_equation_flag == True:
+            self.master_equation_s_matrix_building(loop_counter=loop_counter)
+            #need to add functionality to update with the surgate model or drop out of loop
         self.building_matrices(loop_counter=loop_counter)
-        self.adding_k_target_values()
+        if bool(self.k_target_values_csv):
+            self.adding_k_target_values()
+            
         self.matrix_math(loop_counter=loop_counter)
         self.updating_files(loop_counter=loop_counter)
         
