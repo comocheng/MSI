@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import MSI.master_equation.master_equation as meq 
+import copy
 
 class OptMatrix(object):
     def __init__(self):
@@ -17,7 +18,9 @@ class OptMatrix(object):
     def load_S(self, exp_dict_list:list,parsed_yaml_list:list,
                dk=.01,
                master_equation_reactions = [],
-               mapped_master_equation_sensitivites=np.array(())):
+               mapped_master_equation_sensitivites=np.array(()),
+               master_equation_uncertainty_df = None,
+               master_equation_flag = False):
         
         
 
@@ -185,8 +188,8 @@ class OptMatrix(object):
 
                 
         #assembling the S matrix from the individual experiments 
-        master_equation = False
-        if master_equation == True:
+        #master_equation = False
+        if master_equation_flag == True:
             S_ksens = np.vstack((k_sens_for_whole_simulation))           
             A_k = np.hsplit(S_ksens,3)[0]
             N_k = np.hsplit(S_ksens,3)[1]
@@ -284,7 +287,14 @@ class OptMatrix(object):
                                 
 
 
-    def load_Y(self, exp_dict_list:list,parsed_yaml_file_list:list,loop_counter:int = 0,X:dict={}):
+    def load_Y(self, exp_dict_list:list,parsed_yaml_file_list:list,
+               loop_counter:int = 0,
+               X:dict={},
+               master_equation_reactions = [],
+               master_equation_uncertainty_df = None,
+               master_equation_flag = False):
+        
+        
         def natural_log_difference(experiment,model):
             natural_log_diff = np.log(experiment) - np.log(model)
             return natural_log_diff
@@ -341,16 +351,12 @@ class OptMatrix(object):
             
             # add in a conditional statment for if there is master equation data
             #which is getting included in the simulation
-        ################################################################
-        master_equation = False   
-        master_equation_reactions = []
-        master_equation_df = False
-        ######################################################################
-        if master_equation ==True:
+
+        if master_equation_flag ==True:
             A_n_Ea_length = int((len(reactions_in_cti_file) - len(master_equation_reactions))*3)            
             number_of_molecular_parameters_list = []
-            for col in master_equation_df:
-                number_of_molecular_parameters_list.append(len(master_equation_df[col].dropna().values))
+            for col in master_equation_uncertainty_df:
+                number_of_molecular_parameters_list.append(len(master_equation_uncertainty_df[col].dropna().values))
                 
             number_of_molecular_parameters = sum(number_of_molecular_parameters_list)    
             print('we do not have master equation installed yet')
@@ -364,7 +370,7 @@ class OptMatrix(object):
             ## making a,n and Ea zero list 
         A_n_Ea_zeros = np.zeros((A_n_Ea_length,1))  
         
-        if master_equation ==True:
+        if master_equation_flag ==True:
             molecular_paramter_zeros = np.zeros((number_of_molecular_parameters,1))
         
         
@@ -375,7 +381,7 @@ class OptMatrix(object):
         for variable in range(A_n_Ea_length//3):
             Y_data_Frame.append('Ea'+'_'+str(variable))
             
-        if master_equation == True:
+        if master_equation_flag == True:
             for i,value in enumerate(number_of_molecular_parameters_list):
                 for j,parameter in enumerate(value):
                     Y_data_Frame.append('R'+'_'+str(i)+'P'+'_'+str(j))
@@ -385,7 +391,7 @@ class OptMatrix(object):
         
         if loop_counter == 0:
             Y = np.vstack((Y,A_n_Ea_zeros))
-            if master_equation ==True:
+            if master_equation_flag ==True:
                 Y = np.vstack((Y,molecular_paramter_zeros))
                 
         
@@ -395,7 +401,7 @@ class OptMatrix(object):
             #need to check what we would need to do here 
             #should be tottal X ?
             Y = np.vstack(Y, -X['As_ns_Eas'])
-            if master_equation == True:
+            if master_equation_flag == True:
                 Y = np.vstack(Y,-X['molecular_parameters'])
             
             
@@ -460,7 +466,12 @@ class OptMatrix(object):
         
       
 
-    def build_Z(self, exp_dict_list:list,parsed_yaml_file_list:list,loop_counter:int = 0,reaction_uncertainty=None,master_equation_df=None):
+    def build_Z(self, exp_dict_list:list,
+                parsed_yaml_file_list:list,
+                loop_counter:int = 0,
+                reaction_uncertainty=None,
+                master_equation_uncertainty_df=None,
+                master_equation_flag = False):
         Z = []
         Z_data_Frame = [] 
         sigma = []
@@ -586,17 +597,13 @@ class OptMatrix(object):
         for variable in range(uncertainty_Eas.shape[0]):
             Z_data_Frame.append('Ea'+'_'+str(variable))
         
-        ##########################################################################
-        master_equation = False    
-        master_equation_df = False
-        ##########################################################################
+
         
         
-        if master_equation ==True:
+        if master_equation_flag ==True:
             master_equation_uncertainty = []
-            print('we do not have master equation installed yet')
-            for col in master_equation_df:
-                master_equation_uncertainty.append(master_equation_df[col].dropna().values)
+            for col in master_equation_uncertainty_df:
+                master_equation_uncertainty.append(master_equation_uncertainty_df[col].dropna().values)
                 
             for i,reaction in enumerate(master_equation_uncertainty):
                 for j,uncer in enumerate(reaction):
@@ -673,7 +680,15 @@ class OptMatrix(object):
     
     
     
-    def breakup_delta_x(self, delta_x, exp_dict_list:list, X = np.array(()),loop_counter:int = 0,master_equation_df=None):
+    def breakup_delta_x(self, delta_x, 
+                        exp_dict_list:list, 
+                        X = np.array(()),
+                        loop_counter:int = 0,
+                        master_equation_uncertainty_df=None,
+                        master_equation_reactions = [],
+                        master_equation_flag = False):
+        
+        
         X_to_subtract_from_Y = {}
         reactions_in_cti_file = exp_dict_list[0]['simulation'].processor.solution.reaction_equations()
         number_of_reactions = len(reactions_in_cti_file)
@@ -681,9 +696,7 @@ class OptMatrix(object):
         ####Grab off updates directly for the CTI file 
         ####need to add master equation reactions 
         
-       
-        
-        masterEquationReactions =[]
+
         
         ##################################################################
         if loop_counter !=0:
@@ -696,7 +709,7 @@ class OptMatrix(object):
         X_new = list(X_new.flatten())            
         if exp_dict_list[0]['simulation'].kineticSens ==1:
             
-            value1 = 3*(number_of_reactions - len(masterEquationReactions))
+            value1 = 3*(number_of_reactions - len(master_equation_reactions))
             
                
             AsNsEas = X_new[:value1]
@@ -722,10 +735,10 @@ class OptMatrix(object):
         #molecularParams = np.array([.1,.2,.3,.4,.2,.3,.4]).flatten().tolist()
         # might need to fix this based on how lei is passing me information, check in notebook
         
-        if bool(masterEquationReactions) == True:
+        if master_equation_flag == True:
             number_of_molecular_parameters_list = []
-            for col in master_equation_df:
-                number_of_molecular_parameters_list.append(len(master_equation_df[col].dropna().values))
+            for col in master_equation_uncertainty_df:
+                number_of_molecular_parameters_list.append(len(master_equation_uncertainty_df[col].dropna().values))
                 
             sum_of_moleular_paramters = sum(number_of_molecular_parameters_list)
             value2 = len(sum_of_moleular_paramters)     
@@ -744,7 +757,7 @@ class OptMatrix(object):
             delta_x_molecular_params_by_reaction_dict = dict(zip(reaction_numbers,molecular_paramters_by_reaction))
             ######################################################################################################################## 
             #start here tomorrow
-            #return this 
+            #return this ??
             
            
        
@@ -798,7 +811,7 @@ class OptMatrix(object):
         stop_abs = 1          
         for i,cof in enumerate(coef_dict_list):
             temp=[]
-            counter=1
+         #   counter=1
             for value in cof:
                 if value==0:
                     temp.append([0])
@@ -814,8 +827,11 @@ class OptMatrix(object):
         # return everything in a dictonary??   
         absorbance_coefficients_for_Y = [item for sublist in absorbance_coefficients_for_Y for item in sublist] 
         X_to_subtract_from_Y['absorbance_coefficent_observables'] = physical_observables_for_Y
-#        
-        return deltaXAsNsEas,physical_observables,absorbance_coef_update_dict,X_to_subtract_from_Y
+#       
+        if master_equation_flag == False:
+            return deltaXAsNsEas,physical_observables,absorbance_coef_update_dict,X_to_subtract_from_Y
+        else:
+            return deltaXAsNsEas,physical_observables,absorbance_coef_update_dict,X_to_subtract_from_Y,delta_x_molecular_params_by_reaction_dict
     
     
     def matrix_manipulation(self,runCounter,XLastItteration = np.array(())):
@@ -956,7 +972,7 @@ class Adding_Target_Values(meq.Master_Equation):
             for MP in master_equation_reaction_list[reaction]:
                 nested_reaction_list[reaction].append(0)
                 Number_of_MP.append(MP)
-                    
+        copy.deepcopy(nested_reaction_list)            
         Number_of_MP = len(Number_of_MP)
               
         MP_stack = []
@@ -966,6 +982,8 @@ class Adding_Target_Values(meq.Master_Equation):
             if reaction in master_equation_reaction_list:
                 indx = master_equation_reaction_list.index(reaction)
                 MP_sens_array_list = master_equation_sensitivites[reaction]
+                copy.deepcopy(MP_sens_array_list)
+                MP_sens_array_list_copy = MP_sens_array_list
                 for j, MP_array in MP_sens_array_list:
                     #alpha_array = np.zeros(MP_array.shape)
                     for sensitivity in np.nditer(MP_array,order='F'):
@@ -978,16 +996,18 @@ class Adding_Target_Values(meq.Master_Equation):
                         
                         #these might nowt work 
                         alpha = t_alpha*p_alpha
-                        MP_sens_array_list[k,l] = alpha
+                        MP_sens_array_list_copy[j][k,l] = alpha
                         
                         #needt to figure out how to put this in the correct spot un the array of zeros 
-                    multiplied = np.multiply(MP_array,alpha)
+                    multiplied = np.multiply(MP_sens_array_list_copy[j],MP_sens_array_list[j])
                     array_sum = sum(multiplied)
                     temp = nested_reaction_list
                     temp[indx][j] = array_sum
                     MP_stack.append(temp)
-                    temp = temp.reshape((1,temp.shape[1]))                                                         
-                    target_values_to_stack.append(temp)
+                    flat_list = [item for sublist in temp for item in sublist]
+                    flat_list = np.array(flat_list)
+                    flat_list = flat_list.reshape((1,flat_list.shape[1]))                                                         
+                    target_values_to_stack.append(flat_list)
                         
                         
                             
