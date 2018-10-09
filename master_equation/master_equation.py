@@ -18,8 +18,8 @@ class Master_Equation(object):
             i,j= np.where(array_of_sensitivities == sensitivity)
             temp_coef = []
             pres_coef = []
-            for p,value in pressure_and_temp_array['temperature']:
-                    
+            for p,value in enumerate(pressure_and_temp_array['temperature']):
+                
                 t_coef = self.chebyshev_specific_poly(i[0],self.calc_reduced_T(value))
                 temp_coef.append(t_coef)
                 p_coef = self.chebyshev_specific_poly(j[0],self.calc_reduced_P(pressure_and_temp_array['pressure'][p]))
@@ -32,23 +32,32 @@ class Master_Equation(object):
             pres_coef = pres_coef.reshape((pres_coef.shape[0],1))
                 
             mapped_array = np.multiply(pres_coef,temp_coef)
-            mapped_array = np.multiply(mapped_array,array)
-                
-                
-            sensitivity_multiplied_array[i[0],j[0],:] = mapped_array
+            mapped_array = np.multiply(mapped_array,array)   
+            sensitivity_multiplied_array[i[0],j[0],:] = mapped_array.flatten()
             
         return sensitivity_multiplied_array
     
-    
+    def array_reshape(self,three_d_array):
+        temp_array = []
+        for row in range(three_d_array.shape[0]):
+            for column in range(three_d_array.shape[1]):
+                alpha = three_d_array[row,column,:]
+                alpha = alpha.reshape((alpha.shape[0],1))
+                temp_array.append(alpha)
+        temp_array = np.hstack((temp_array))
+        return temp_array
+
     
     def chebyshev_specific_poly(self,order_needed,value):
         #this function starts indexing at 1 
-        order_needed  = order_needed +1
+        order_needed  = order_needed + 2 
         coef = [1 for value in range(order_needed)]
+        
         x = np.polynomial.chebyshev.chebval(value,
                                        coef,
                                        tensor = False)
-        y = np.polynomial.chebyshev.chebval(3,
+        
+        y = np.polynomial.chebyshev.chebval(value,
                                        coef[0:-1],
                                        tensor = False)  
         return x-y
@@ -74,7 +83,7 @@ class Master_Equation(object):
                  parsed_yaml_file_list,
                  master_equation_reactions:list):
     
-   
+        nested_list = []
         def slicing_out_reactions(reaction_string,array):
             reactions_in_cti_file = exp_dict_list[0]['simulation'].processor.solution.reaction_equations()
             index_of_reaction_in_cti = reactions_in_cti_file.index(reaction_string)
@@ -84,36 +93,54 @@ class Master_Equation(object):
             return column_of_array
         mapped_to_alpha_full_simulation = []
         for i, exp in enumerate(exp_dict_list):
+            simulation = []
             single_experiment = []
+            
             if parsed_yaml_file_list[i]['moleFractionObservables'][0] != None or parsed_yaml_file_list[i]['concentrationObservables'][0] != None:
                 As = exp['ksens']['A']
                 for xx,observable in enumerate(As):
                     temp = []
+                    observable_list = []
                     for reaction in master_equation_reactions:
                         column = slicing_out_reactions(reaction,observable)
-                        temp.append(self.multiply_by_sensitivites(column,sensitivty_dict[reaction][0],exp.pressureAndTemperatureToExperiment[xx]))
-                    single_experiment.append(temp)
+                        single_reaction_array = self.array_reshape(self.multiply_by_sensitivites(column,sensitivty_dict[reaction][0],exp['simulation'].pressureAndTemperatureToExperiment[xx]))
+                        temp.append(single_reaction_array)
+                        observable_list.append(single_reaction_array)
+                        
+                    simulation.append(observable_list)
+                   
+                    single_experiment.append(np.hstack((temp)))
+                    
                  
             if 'absorbance_observables' in list(exp.keys()):
                 wavelengths = parsed_yaml_file_list[i]['absorbanceCsvWavelengths']
                 for k,wl in enumerate(wavelengths):
                     temp = []
+                    observable_list = []
                     for reaction in master_equation_reactions:
-                        column = slicing_out_reactions(reaction,exp['absorbance_k_sense'][wl][0],)
-                        temp.append(self.multiply_by_sensitivites(column,sensitivty_dict[reaction][0],exp['time_history_interpolated_against_abs'][wl]))
-                    single_experiment.append(temp)
+                        column = slicing_out_reactions(reaction,exp['absorbance_ksens'][wl][0])
+                        single_reaction_array = self.array_reshape(self.multiply_by_sensitivites(column,sensitivty_dict[reaction][0],exp['time_history_interpolated_against_abs'][wl]))
+                        temp.append(single_reaction_array)
+                        observable_list.append(single_reaction_array)
                         
-            mapped_to_alpha_full_simulation.append(np.hstack((single_experiment)))
+                    single_experiment.append(np.hstack((temp)))
+                    simulation.append(observable_list)
+                   
+                       
+            
+
+            nested_list.append(simulation)        
+            mapped_to_alpha_full_simulation.append(np.vstack((single_experiment)))
         
        
         
             
-        return mapped_to_alpha_full_simulation
+        return mapped_to_alpha_full_simulation,nested_list
     
     
     
     
-    def map_to_S(mapped_to_alpha_full_simulation,
+    def map_to_S(self,mapped_to_alpha_full_simulation,
                  sensitivity_dict:dict,
                  master_equation_reactions:list):
         MP_nested_list_full_experiment = []
@@ -123,14 +150,17 @@ class Master_Equation(object):
                 observables = []
                 for reaction_number,reaction in enumerate(mapped_to_alpha_full_simulation[simulation][observable]):
                     reaction = []
-                    for molecular_parameter,array_of_sensitivities in enumerate(sensitivity_dict[reaction]):
+                    for molecular_parameter,array_of_sensitivities in enumerate(sensitivity_dict[master_equation_reactions[reaction_number]]):
                         zero_array = np.zeros((np.shape(mapped_to_alpha_full_simulation[simulation][observable][reaction_number])))
-                        for sensitivity in np.nditer(sensitivity_dict[reaction][molecular_parameter],order='F'):
+                        column_counter = 0
+                        for sensitivity in np.nditer(sensitivity_dict[master_equation_reactions[reaction_number]][molecular_parameter],order='F'):
+                            
                             i,j= np.where(array_of_sensitivities == sensitivity)
                             mapped_alpha_array = mapped_to_alpha_full_simulation[simulation][observable][reaction_number]
-                            column_to_multiply_by_sens = mapped_alpha_array[i[0],j[0],:]
+                            column_to_multiply_by_sens = mapped_alpha_array[:,column_counter]
                             column_to_multiply_by_sens = np.multiply(column_to_multiply_by_sens,sensitivity)
-                            zero_array[i[0],j[0],:] = column_to_multiply_by_sens
+                            zero_array[:,column_counter] = column_to_multiply_by_sens
+                            column_counter+=1
                         reaction.append(zero_array)
                     observables.append(reaction)
                 simulations.append(observables)
@@ -144,15 +174,16 @@ class Master_Equation(object):
                 for reaction in range(len(MP_nested_list_full_experiment[simulation][observable])):
                     reactions = []
                     for molecular_parameter,MP_array in enumerate(MP_nested_list_full_experiment[simulation][observable][reaction]):
-                        Temp  = np.sum(MP_array,axis = 1)
-                        Column_vector = np.sum(Temp,axis=0)
+                        #how do we sum these things up 
+                        print(np.shape(MP_array))
+                        Column_vector  = np.sum(MP_array,axis = 1)
                         Column_vector = Column_vector.reshape((Column_vector.shape[0],1))
                         reactions.append(Column_vector)
                     observables.append(np.hstack(reactions))
                 simulations.append(np.vstack(observables))
             MP.append(np.vstack(simulations))
         MP = np.vstack((MP))
-        
+        print(np.shape(MP))
         return MP    
 
                 
