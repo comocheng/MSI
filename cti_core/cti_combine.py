@@ -155,9 +155,9 @@ def cti_write(x={},original_cti='',master_rxns='',master_index=[]):
     
     new_file=ctiw.write(NewModel)
     return new_file
-def cti_write2(x={},original_cti='',master_rxns='',master_index=[],MP={},working_directory=''):
-    print(MP)
-    
+def cti_write2(x={},original_cti='',master_rxns='',master_index=[],MP={},working_directory='',file_name=''):
+    #print(MP)
+    print(bool(x))
     if not original_cti:
         raise Exception('Please provide a name for the original mechanism file and try again.')
     if not master_rxns and np.any(master_index):
@@ -408,6 +408,6 @@ def cti_write2(x={},original_cti='',master_rxns='',master_index=[],MP={},working
                    
                
     
-    new_file=ctiw.write(NewModel, cwd=working_directory)
+    new_file=ctiw.write(NewModel, cwd=working_directory,file_name=file_name,original_cti=original_cti)
     #tab
     return new_file,original_rxn_eqs,master_rxn_eqs

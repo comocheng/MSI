@@ -215,7 +215,7 @@ class Processor(object): #handles one optimization but may add support for multi
                 return True,empty_param,r_index
         elif 'Type' in token[0] and empty_param==None:
             print('Error: Expected Reaction index but read type instead at line {0}'.format(line_no+1))
-            return False,empty_param,r_inde#x
+            return False,empty_param,r_index
         elif 'Type' in token[0] and empty_param.r_type!='':
             print('Error: Reaction type defined but was given again at line {0}'.format(line_no+1))
             return False,empty_param,r_index
@@ -224,7 +224,7 @@ class Processor(object): #handles one optimization but may add support for multi
             return True,empty_param,r_index
         elif 'h_dels' in token[0]:
             if empty_param.r_type != 'FalloffReaction':
-                print('Error: h_dels invalid for reaction type {0} at line {1}'.format(emtpy_param.r_type,line_no+1))
+                print('Error: h_dels invalid for reaction type {0} at line {1}'.format(empty_param.r_type,line_no+1))
                 return False,empty_param,r_index
             elif empty_param.h_dels != []:
                 print('Error: h_dels already filled but h_dels given at line {0}'.format(line_no+1))
@@ -245,7 +245,7 @@ class Processor(object): #handles one optimization but may add support for multi
                     return False,empty_param,r_index
         elif 'l_dels' in token[0]:
             if empty_param.r_type != 'FalloffReaction':
-                print('Error: l_dels invalid for reaction type {0} at line {1}'.format(emtpy_param.r_type,line_no+1))
+                print('Error: l_dels invalid for reaction type {0} at line {1}'.format(empty_param.r_type,line_no+1))
                 return False,empty_param,r_index
             elif empty_param.h_dels != []:
                 print('Error: l_dels already filled but l_dels given at line {0}'.format(line_no+1))
