@@ -48,7 +48,7 @@ class Simulation(object):
                 if x != '':
                     conditions_copy[x] = conditions_copy[x]+conditions_perturb[x]
             new_conditions = conditions_copy 
-        print(new_conditions)
+        #print(new_conditions)
         self.processor.solution.TPX=temperature,pressure*self.pasc_to_atm, new_conditions
         #print(self.conditions)#stub
         

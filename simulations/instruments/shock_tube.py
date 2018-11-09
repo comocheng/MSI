@@ -315,6 +315,7 @@ class shockTube(sim.Simulation):
             sheetA = A[:,:,i] #sheet for specific observable
             for x,column in enumerate(sheetA.T):
                 N[:,x,i]= np.multiply(column,np.log(self.timeHistories[0]['temperature'])) if time_history is None else np.multiply(column,np.log(time_history['temperature']))
+                #not sure if this mapping is correct, check with burke and also update absorption mapping
                 to_mult_ea = np.divide(-1,np.multiply(8314.4621,self.timeHistories[0]['temperature'])) if time_history is None else np.divide(-1,np.multiply(8314.4621,time_history['temperature']))
                 Ea[:,x,i]= np.multiply(column,to_mult_ea)
 
@@ -345,40 +346,81 @@ class shockTube(sim.Simulation):
             if 'pressure' in pre_interpolated[0].columns.tolist() and 'temperature' in pre_interpolated[0].columns.tolist():
                 pre_interpolated = [df.drop(columns=['temperature','pressure']) for df in pre_interpolated]
 
-        
- 
-        for time_history in pre_interpolated:
-            array_list = []
-            max_size = 0
-            for i,frame in enumerate(self.experimentalData): #each frame is data for one observable
-                if i>len(self.observables):
-                    break
-                interpolated_column= np.interp(frame.ix[:,0],
-                                               self.timeHistories[0]['time'],
-                                               time_history.ix[:,i])
+        #make sure you put the observables list in the correct order
+        #check what order the experimental list is parsed in
+        #making new observables list 
+        if single is not None:
+            mole_fraction_and_concentration_observables= self.moleFractionObservables + self.concentrationObservables
+            
+            mole_fraction_and_concentration_observables   = [x for x in mole_fraction_and_concentration_observables if x is not None]      
+            
+            for time_history in pre_interpolated:
+                array_list = []
+                max_size = 0
+                for i, observable in enumerate(mole_fraction_and_concentration_observables):
+                    interpolated_column = np.interp(self.experimentalData[i]['Time'].values,
+                                                    self.timeHistories[0]['time'].values,
+                                                    time_history[observable].values)
+                    
+                    interpolated_column = np.reshape(interpolated_column,((interpolated_column.shape[0],1)))
+                    array_list.append(interpolated_column)
+                    max_size = max(interpolated_column.shape[0],max_size)
+                padded_arrays = []
+                for arr in array_list:
+                    if arr.shape[0] < max_size:
+                        padded_arrays.append(np.pad(arr,
+                                                    ((0,max_size-arr.shape[0]),(0,0)),
+                                                    'constant',constant_values = np.nan))
+                    else:
+                        padded_arrays.append(arr)
+                    
+                np_array = np.hstack((padded_arrays))
+                new_frame = pd.DataFrame(np_array)
+                int_exp.append(new_frame)
                 
-                interpolated_column= np.reshape(interpolated_column,
-                                            ((interpolated_column.shape[0],1)))
-                array_list.append(interpolated_column)
-                max_size = max(interpolated_column.shape[0],max_size)
-            padded_arrays= []
-            for arr in array_list:
-                if arr.shape[0] < max_size:
-                    padded_arrays.append(np.pad(arr,
-                                        ((0,max_size - arr.shape[0]),(0,0)),
-                                        'constant',constant_values=np.nan))
-                else:
-                    padded_arrays.append(arr)
-            np_array = np.hstack((padded_arrays))
-            new_frame = pd.DataFrame(np_array)
-            int_exp.append(new_frame)
-        
-        for x in int_exp:
-            x.columns = self.observables[0:len(self.experimentalData)]
-        if single is not  None:
+            for x in int_exp:
+                x.columns = mole_fraction_and_concentration_observables
+                
             return int_exp[0]
+                    
+                    
+        #check and make sure this part actually works for what we want  for interpolating the pre interpolated time histories 
+        #make sure we are getting the correct columns            
         else:
-            return int_exp
+            for time_history in pre_interpolated:
+                array_list = []
+                max_size = 0
+                for i,frame in enumerate(self.experimentalData): #each frame is data for one observable
+                    if i>len(self.observables):
+                        break
+                    #change these bboth to use observable 
+                    interpolated_column= np.interp(frame.ix[:,0],
+                                                   self.timeHistories[0]['time'],
+                                                   time_history.ix[:,i])
+                    
+
+                    interpolated_column= np.reshape(interpolated_column,
+                                                ((interpolated_column.shape[0],1)))
+                    array_list.append(interpolated_column)
+                    max_size = max(interpolated_column.shape[0],max_size)
+                padded_arrays= []
+                for arr in array_list:
+                    if arr.shape[0] < max_size:
+                        padded_arrays.append(np.pad(arr,
+                                            ((0,max_size - arr.shape[0]),(0,0)),
+                                            'constant',constant_values=np.nan))
+                    else:
+                        padded_arrays.append(arr)
+                np_array = np.hstack((padded_arrays))
+                new_frame = pd.DataFrame(np_array)
+                int_exp.append(new_frame)
+            
+            for x in int_exp:
+                x.columns = self.observables[0:len(self.experimentalData)]
+            if single is not  None:
+                return int_exp[0]
+            else:
+                return int_exp
 
     def interpolation(self,originalValues,newValues, thingBeingInterpolated):   
         #interpolating time histories to original time history 

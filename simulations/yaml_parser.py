@@ -254,14 +254,13 @@ class Parser(object):
                 
    
                 updatedTemp = np.exp(physical_observables_updates_list[yaml_file]['T_experiment_'+str(yaml_file)]) * temp
-                updatedTemp = round(updatedTemp,8)
+                updatedTemp = round(updatedTemp,9)
                 updatedPress = np.exp(physical_observables_updates_list[yaml_file]['P_experiment_'+str(yaml_file)]) * press
-                updatedPress = round(updatedPress,8)
+                updatedPress = round(updatedPress,9)
                 
                 
 
                 species_to_loop =  experiment_dict_list[yaml_file]['uncertainty']['species_relative_uncertainty']['species']
-                
                 dilluant = ['Ar','AR','ar','HE','He','he','Kr','KR','kr','Xe','XE','xe','NE','Ne','ne']
                 updated_mole_fractions = {}
                 count = 0
@@ -269,7 +268,7 @@ class Parser(object):
                     if specie in dilluant:
                         continue
                     updated = np.exp(physical_observables_updates_list[yaml_file]['X_'+str(count)+'_experiment_'+str(yaml_file)])*conditions[specie]
-                    updated = round(updated,8)
+                    updated = round(updated,9)
                     updated_mole_fractions[specie] = updated
                     count+=1
 
