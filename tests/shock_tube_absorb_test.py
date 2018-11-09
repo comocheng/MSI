@@ -30,7 +30,7 @@ abs_instance = csp.Absorb()
 exp_loaded = parser.load_to_obj('MSI/data/test_data/Troe_6.yaml')
 abs_loaded = parser.load_to_obj('MSI/data/test_data/Troe_6_abs.yaml')
 abs_data = abs_instance.superimpose_shock_tube(test_tube,abs_loaded,30,kinetic_sens=0)
-print(abs_data)
+abs_data=abs_data
 import matplotlib.pyplot as plt
 plt.plot(test_tube.timeHistories[0]['time']*1000,abs_data[215])
 plt.axis([.01,1.4,0,.35])
