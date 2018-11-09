@@ -8,8 +8,12 @@ import MSI.optimization.opt_runner as opt
 import MSI.simulations.absorbance.curve_superimpose as csp
 import MSI.simulations.yaml_parser as yp
 import MSI.master_equation.master_equation as meq
+import MSI.cti_core.cti_combine as ctic
+import copy
 import cantera as ct
 import numpy as np
+import pickle
+
 #
 
 class MSI_shocktube_optimization(object):
@@ -20,9 +24,12 @@ class MSI_shocktube_optimization(object):
                  reaction_uncertainty_csv:str,
                  k_target_values_csv:str,
                  master_equation_reactions:list=[],
-                 molecular_parameter_sensitivities:dict={}):
+                 molecular_parameter_sensitivities:dict={},
+                 master_reaction_equation_cti_name:str = '',
+                 master_index = []):
         
         self.cti_file_name = cti_file
+        copy.deepcopy(self.cti_file_name)
         self.perturbment = perturbment
         self.kineticSens = kineticSens
         self.physicalSens = physicalSens
@@ -38,6 +45,8 @@ class MSI_shocktube_optimization(object):
         self.master_equation_reactions = master_equation_reactions
         if bool(self.master_equation_reactions):
             self.master_equation_flag = True
+            self.master_reaction_equation_cti_name = master_reaction_equation_cti_name
+            self.master_index = master_index
         else:
             self.master_equation_flag=False
         self.sensitivity_dict = molecular_parameter_sensitivities
@@ -55,19 +64,44 @@ class MSI_shocktube_optimization(object):
         return
 # pre process the cti file to remove reactions and rename it,also save it as the first run of the file
         
-    
-    def establish_processor(self):
-        processor = pr.Processor(self.data_directory +'/'+ self.cti_file_name)
+    # run the cti writer to establish processor and make cti file 
+    def establish_processor(self,loop_counter=0):
+        if loop_counter==0 and self.master_equation_flag==False:
+            new_file,original_rxn_eqs,master_rxn_eqs =ctic.cti_write2(original_cti=self.data_directory +'/'+ self.cti_file_name,
+                                                                      working_directory=self.data_directory,
+                                                                      file_name= self.cti_file_name.replace('.cti','')+'updated')
+            self.new_cti_file = new_file
+             
+        if loop_counter==0 and self.master_equation_flag==True:
+            new_file,original_rxn_eqs,master_rxn_eqs =ctic.cti_write2(original_cti=self.data_directory +'/'+ self.cti_file_name,
+                                                                      master_rxns = self.data_directory+'/'+self.master_reaction_equation_cti_name,
+                                                                      master_index = self.master_index,
+                                                                      working_directory=self.data_directory,
+                                                                      file_name= self.cti_file_name.replace('.cti','')+'updated')
+            self.new_cti_file = new_file
+            
+        processor = pr.Processor(self.new_cti_file)
+        #processor = pr.Processor(self.data_directory +'/'+ self.cti_file_name)
         self.processor = processor
         return 
     
-    def parsing_yaml_files(self,loop_counter=0):
+    def parsing_yaml_files(self,loop_counter=0,list_of_updated_yamls=[]):
         yaml_instance = yp.Parser()
         self.yaml_instance = yaml_instance
-        list_of_yaml_objects = yaml_instance.load_yaml_list(yaml_list=self.yaml_file_list_with_working_directory)
-        self.list_of_yaml_objects = list_of_yaml_objects
-        list_of_parsed_yamls = yaml_instance.parsing_multiple_dictonaries(list_of_yaml_objects = list_of_yaml_objects,loop_counter=loop_counter)
-        self.list_of_parsed_yamls = list_of_parsed_yamls
+        if loop_counter ==0:
+            list_of_yaml_objects = yaml_instance.load_yaml_list(yaml_list=self.yaml_file_list_with_working_directory)
+            self.list_of_yaml_objects = list_of_yaml_objects
+            list_of_parsed_yamls = yaml_instance.parsing_multiple_dictonaries(list_of_yaml_objects = list_of_yaml_objects,loop_counter=loop_counter)
+            list_of_parsed_yamls_original = copy.deepcopy(list_of_parsed_yamls)
+            self.list_of_parsed_yamls_original = list_of_parsed_yamls_original
+            self.list_of_parsed_yamls = list_of_parsed_yamls_original
+            
+        else:
+            list_of_yaml_objects = yaml_instance.load_yaml_list(yaml_list=self.updated_yaml_file_name_list)            
+            self.list_of_yaml_objects = list_of_yaml_objects
+            list_of_parsed_yamls = yaml_instance.parsing_multiple_dictonaries(list_of_yaml_objects = list_of_yaml_objects,loop_counter=loop_counter)
+            self.list_of_parsed_yamls = list_of_parsed_yamls
+
         #print(yaml_instance.original_experimental_conditions)
         return
     
@@ -104,9 +138,16 @@ class MSI_shocktube_optimization(object):
         self.matrix_builder_instance = matrix_builder_instance
         S_matrix = matrix_builder_instance.load_S(self.experiment_dictonaries,self.list_of_parsed_yamls,dk=self.perturbment)
         self.S_matrix = S_matrix
-        Y_matrix,Y_data_frame = matrix_builder_instance.load_Y(self.experiment_dictonaries,self.list_of_parsed_yamls,loop_counter=loop_counter)
+        
+        
+        if loop_counter == 0:
+            Y_matrix,Y_data_frame = matrix_builder_instance.load_Y(self.experiment_dictonaries,self.list_of_parsed_yamls,loop_counter=loop_counter)
+        else:
+            Y_matrix,Y_data_frame = matrix_builder_instance.load_Y(self.experiment_dictonaries,self.list_of_parsed_yamls,loop_counter=loop_counter,X=self.X_to_subtract_from_Y)    
+            
         self.Y_matrix = Y_matrix
         self.Y_data_frame = Y_data_frame
+        
         z_matrix,z_data_frame,sigma = matrix_builder_instance.build_Z(self.experiment_dictonaries,self.list_of_parsed_yamls,
                                                        loop_counter=loop_counter,
                                                        reaction_uncertainty = self.data_directory +'/'+self.reaction_uncertainty_csv )
@@ -132,29 +173,59 @@ class MSI_shocktube_optimization(object):
         return
     
     def matrix_math(self,loop_counter = 0):
-        X = self.matrix_builder_instance.matrix_manipulation(loop_counter,XLastItteration = np.array(()))
-        
-        self.X = X
+        if loop_counter ==0:
+            X,covarience = self.matrix_builder_instance.matrix_manipulation(loop_counter,XLastItteration = np.array(()))            
+            self.X = X
+            self.covarience = covarience
+            
+        else:
+            X,covarience = self.matrix_builder_instance.matrix_manipulation(loop_counter,XLastItteration = self.X)
+            self.X = X
+            self.covarience = covarience
         
         
 
         if self.master_equation_flag == True:
-            deltaXAsNsEas,physical_observables,absorbance_coef_update_dict, X_to_subtract_from_Y,delta_x_molecular_params_by_reaction_dict = self.matrix_builder_instance.breakup_delta_x(self.X,
+            deltaXAsNsEas,physical_observables,absorbance_coef_update_dict, X_to_subtract_from_Y,delta_x_molecular_params_by_reaction_dict = self.matrix_builder_instance.breakup_X(self.X,
                                                                                                                                           self.experiment_dictonaries,
                                                                                                                                             loop_counter=loop_counter)
             self.delta_x_molecular_params_by_reaction_dict = delta_x_molecular_params_by_reaction_dict
         else:
-            deltaXAsNsEas,physical_observables,absorbance_coef_update_dict, X_to_subtract_from_Y = self.matrix_builder_instance.breakup_delta_x(self.X,
+            deltaXAsNsEas,physical_observables,absorbance_coef_update_dict, X_to_subtract_from_Y = self.matrix_builder_instance.breakup_X(self.X,
                                                                                                                                           self.experiment_dictonaries,
                                                                                                                                             loop_counter=loop_counter)
         
         self.physical_obervable_updates_list = physical_observables 
         self.absorbance_coef_update_dict = absorbance_coef_update_dict
+        self.deltaXAsNsEas = deltaXAsNsEas
+        self.X_to_subtract_from_Y = X_to_subtract_from_Y
+        return
+    
+    
+    def saving_first_itteration_matrices(self,loop_counter=0):
+        if loop_counter==0:
+
+
+            
+            original_S_matrix = copy.deepcopy(self.S_matrix)
+            self.original_S_matrix = original_S_matrix
+            
+            original_Y_matrix = copy.deepcopy(self.Y_matrix)
+            self.original_Y_matrix = original_Y_matrix
+            
+            original_z_matrix = copy.deepcopy(self.z_matrix)
+            self.original_z_matrix = original_z_matrix
+            
+            original_covarience = copy.deepcopy(self.covarience)
+            self.original_covarience = original_covarience
+            
+            #original_experiment_dictonaries  = copy.deepcopy(self.experiment_dictonaries[0]['ksens'])
+
         return
     
     
     
-    def updating_files(self,loop_counter):
+    def updating_files(self,loop_counter=0):
         updated_file_name_list = self.yaml_instance.yaml_file_updates(self.yaml_file_list_with_working_directory,
                                              self.list_of_parsed_yamls,self.experiment_dictonaries,
                                              self.physical_obervable_updates_list,
@@ -168,6 +239,8 @@ class MSI_shocktube_optimization(object):
                                                                                        self.absorbance_coef_update_dict,
                                                                                        loop_counter = loop_counter)
         self.updated_absorption_file_name_list = updated_absorption_file_name_list
+        self.updated_yaml_file_name_list = self.updated_absorption_file_name_list
+        #print(updated_absorption_file_name_list)
         if self.master_equation_flag == True and loop_counter/1 == loop_counter:
             master_equation_surrogate_model_update_dictonary = self.master_equation_instance.surrogate_model_molecular_parameters_chevy(self.sensitivity_dict,
                                                                                      self.master_equation_reactions,
@@ -180,19 +253,44 @@ class MSI_shocktube_optimization(object):
                                                                                      self.master_equation_reactions,
                                                                                      self.delta_x_molecular_params_by_reaction_dict)
             self.master_equation_surrogate_model_update_dictonary = master_equation_surrogate_model_update_dictonary
+            
+        if self.master_equation_flag == False:
+            self.master_equation_surrogate_model_update_dictonary = {}
 
         
         #update the cti files pass in the renamed file 
-        #self.processor.cti_write2(x={},original_cti='',master_rxns='',master_index=[],MP={})
+
+        # is this how this function works 
+        if self.master_equation_flag == True:
+            new_file,original_rxn_eqs,master_rxn_eqs =ctic.cti_write2(x = self.deltaXAsNsEas,
+                                                                      original_cti=self.data_directory +'/'+ self.cti_file_name,
+                                                                      master_rxns = self.data_directory+'/'+self.master_reaction_equation_cti_name,
+                                                                      master_index = self.master_index,
+                                                                      MP = self.master_equation_surrogate_model_update_dictonary,
+                                                                      working_directory=self.data_directory,
+                                                                      file_name= self.cti_file_name.replace('.cti','')+'_updated')
+            
+        if self.master_equation_flag == False:
+            new_file,original_rxn_eqs,master_rxn_eqs =ctic.cti_write2(x = self.deltaXAsNsEas,
+                                                                      original_cti=self.data_directory +'/'+ self.cti_file_name,
+                                                                      MP = self.master_equation_surrogate_model_update_dictonary,
+                                                                      working_directory=self.data_directory,
+                                                                      file_name= self.cti_file_name.replace('.cti','')+'_updated')
+        self.new_cti_file = new_file 
+        
+        
+       
         
         return
-    
+     
     def one_run_shock_tube_optimization(self,loop_counter=0):
         self.append_working_directory()
-        self.establish_processor()
+        #every loop run this, probably not?
+        self.establish_processor(loop_counter=loop_counter)
         self.parsing_yaml_files(loop_counter = loop_counter)
         if loop_counter == 0:
-            original_experimental_conditions_local = self.yaml_instance.original_experimental_conditions
+            original_experimental_conditions_local = copy.deepcopy(self.yaml_instance.original_experimental_conditions)
+            #copy.deepcopy(original_experimental_conditions_local)
             self.original_experimental_conditions_local = original_experimental_conditions_local
         self.running_shock_tube_simulations()
         if self.master_equation_flag == True:
@@ -203,6 +301,8 @@ class MSI_shocktube_optimization(object):
             self.adding_k_target_values()
             
         self.matrix_math(loop_counter=loop_counter)
+        if loop_counter==0:
+            self.saving_first_itteration_matrices(loop_counter=loop_counter)
         self.updating_files(loop_counter=loop_counter)
         
         

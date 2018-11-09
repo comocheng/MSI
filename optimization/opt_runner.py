@@ -30,7 +30,8 @@ class Optimization_Utility(object):
                               interpolated_absorbance:list=[],
                               experimental_data:list =[],
                               absorbance_experimental_data:list=[],
-                              time_history_interpolated_against_absorbance_experiment:dict={}):
+                              time_history_interpolated_against_absorbance_experiment:dict={},
+                              absorbance_calculated_from_model=None):
         exp_dict = {}
         exp_dict['index']              = exp_index
         exp_dict['simulation']         = simulation
@@ -62,6 +63,7 @@ class Optimization_Utility(object):
             exp_dict['perturbed_coef']     = interpolated_absorbance[3]
             exp_dict['absorbance_observables'] = simulation.absorbanceObservables
             exp_dict['absorbance_experimental_data'] = absorbance_experimental_data
+            exp_dict['absorbance_calculated_from_model'] = absorbance_calculated_from_model
             exp_dict['time_history_interpolated_against_abs'] = time_history_interpolated_against_absorbance_experiment
             
             
@@ -129,11 +131,16 @@ class Optimization_Utility(object):
         exp_data = shock_tube.importExperimentalData(csv_paths)
         
         shock_tube.run()
+        ########################################################################
+        import pandas as pd
+        pd.DataFrame(shock_tube.kineticSensitivities[:,:,0]).to_csv('kinetic_sens_OH.csv')
+        #check this tomorrow 
+        ################################################################################
         int_ksens_exp_mapped= shock_tube.map_and_interp_ksens()#ksens is wiped on rerun so int it before
         shock_tube.sensitivity_adjustment(temp_del = dk)
         shock_tube.sensitivity_adjustment(pres_del = dk)
         shock_tube.species_adjustment(dk)
-        
+        ############################################### check to make sure these aren't effected 
         int_tp_psen_against_experimental = shock_tube.interpolate_experimental([shock_tube.interpolate_physical_sensitivities(index=1),
                                                                            shock_tube.interpolate_physical_sensitivities(index=2)])
     
@@ -141,6 +148,7 @@ class Optimization_Utility(object):
     ###############saving the shock tube experimental interpolated time history     
         single_data = shock_tube.interpolate_experimental(single=shock_tube.timeHistories[0])
         shock_tube.savingInterpTimeHistoryAgainstExp(single_data)
+        #tab starting here tomorrow
         shock_tube.interpolatePressureandTempToExperiment(shock_tube,exp_data)
     ###############  ###############  
         experiment = self.build_single_exp_dict(exp_number,
@@ -241,7 +249,8 @@ class Optimization_Utility(object):
                                       interpolated_absorbance=interp_abs_exp,
                                       experimental_data = exp_data,
                                       absorbance_experimental_data = loaded_experimental_data_absorbance,
-                                      time_history_interpolated_against_absorbance_experiment = time_history_interp_against_experiment_dict )
+                                      time_history_interpolated_against_absorbance_experiment = time_history_interp_against_experiment_dict,
+                                      absorbance_calculated_from_model = abs_data[0])
         
         return experiment
     
@@ -320,7 +329,8 @@ class Optimization_Utility(object):
                                       None,
                                       interpolated_absorbance=interp_abs_exp,
                                       absorbance_experimental_data = loaded_experimental_data_absorbance,
-                                      time_history_interpolated_against_absorbance_experiment = time_history_interp_against_experiment_dict)
+                                      time_history_interpolated_against_absorbance_experiment = time_history_interp_against_experiment_dict,
+                                      absorbance_calculated_from_model = abs_data[0] )
         
         return experiment    
     

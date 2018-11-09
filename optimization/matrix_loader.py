@@ -38,12 +38,15 @@ class OptMatrix(object):
                 if x[0][2] not in pert_coef.keys():
                     pert_coef[x[0][2]] = [x[1]]
                 else:
+
                     pert_coef[x[0][2]].append(x[1])
+
                     
                 if x[0][2] not in list_to_keep_order_of_coef:
                     list_to_keep_order_of_coef.append(x[0][2])
             
         num_ind_pert_coef = len(pert_coef)
+        #print(pert_coef.keys())
         
         #print(num_ind_pert_coef," sigmas")
         #establish # of independent pert before hand, to proper pad the observables, put in list, make a dict of cc,
@@ -53,7 +56,7 @@ class OptMatrix(object):
         p_sens_for_whole_simulation = []
         abs_coef_sens_for_whole_simulation = []
         
-        
+        temps = []
         for i,exp in enumerate(exp_dict_list):
             ttl_kinetic_observables_for_exp = []
             obs_counter =0
@@ -121,7 +124,8 @@ class OptMatrix(object):
                 ttl_phsycal_obs_for_exp = np.vstack((ttl_phsycal_obs_for_exp))
                 p_sens_for_whole_simulation.append(ttl_phsycal_obs_for_exp)
 #######################################################################################################################################################               
-            
+
+
             if 'perturbed_coef' in exp.keys():
                 ttl_absorbance_obs_for_exp = []
                 wavelengths = parsed_yaml_list[i]['absorbanceCsvWavelengths']
@@ -129,7 +133,7 @@ class OptMatrix(object):
                     perturbed_coefficeints = []
                     index_list = []
                     for xx in range(len(parsed_yaml_list[i]['coupledCoefficients'])):
-                        #print(parsed_yaml_list[i]['functionalForm'])
+
                         for yy in range(len(parsed_yaml_list[i]['coupledCoefficients'][xx])):
                             ff = parsed_yaml_list[i]['functionalForm'][xx][yy]
                             #temp = list(parsed_yaml_list[i]['coupledCoefficients'][xx][yy])
@@ -146,9 +150,14 @@ class OptMatrix(object):
                                     key = tuple(temp)
                                     indx = list_to_keep_order_of_coef.index(key)
                                     index_list.append(indx)
-                                    array = pert_coef[key][k][wl]
+                                    
+                                    exp_index_sigma = temps.count(key)
+                                    temps.append(key)
+
+                                    array = pert_coef[key][exp_index_sigma][wl]
                                     array = array.reshape((array.shape[0],1))
                                     perturbed_coefficeints.append(array)
+
                                 
                     
                     
@@ -258,6 +267,7 @@ class OptMatrix(object):
             if 'perturbed_coef' in exp.keys():  
                 zero_padded_aborption_coef_array = abs_coef_sens_for_whole_simulation[i]   
                 combined = abs_coef_sens_for_whole_simulation[i] 
+
                 if exp['mole_fraction_observables'][0] != None or exp['concentration_observables'][0] != None:
                     zero_array_for_observables_padding = np.zeros((number_of_rows_in_psens_arrays[i]-zero_padded_aborption_coef_array.shape[0],
                                        num_ind_pert_coef))  
@@ -274,8 +284,11 @@ class OptMatrix(object):
         
         absorb_coef_whole_simulation_with_padding = np.vstack((absorb_coef_whole_simulation_with_padding))  
         S_abs_coef  = absorb_coef_whole_simulation_with_padding
-        
-        #build s matrix
+        #print(np.shape(S_abs_coef))
+        #print(np.shape(S_psens))
+        #print(np.shape(S_ksens))
+        pd.DataFrame(S_abs_coef).to_csv('absorbance_coef_not_working.csv')
+
         S_matrix = np.hstack((S_ksens,S_psens,S_abs_coef))
         shape = np.shape(S_matrix)[1]
         #append identy matrix
@@ -312,8 +325,13 @@ class OptMatrix(object):
                     if 'ppm' in exp_dic['experimental_data'][counter].columns.tolist()[1]:
                         natural_log_diff = natural_log_difference(exp_dic['experimental_data'][counter][observable+'_ppm'].values,
                                                                   (exp_dic['simulation'].timeHistoryInterpToExperiment[observable].dropna().values)*1e6)
+                        
+                        
                         natural_log_diff =  natural_log_diff.reshape((natural_log_diff.shape[0],
                                                           1))
+
+
+                        
                     else:
                         natural_log_diff = natural_log_difference(exp_dic['experimental_data'][counter][observable].values,
                                                                   exp_dic['simulation'].timeHistoryInterpToExperiment[observable].dropna().values)
@@ -359,7 +377,7 @@ class OptMatrix(object):
                 number_of_molecular_parameters_list.append(len(master_equation_uncertainty_df[col].dropna().values))
                 
             number_of_molecular_parameters = sum(number_of_molecular_parameters_list)    
-            print('we do not have master equation installed yet')
+            #print('we do not have master equation installed yet')
             #subtract out the necessary target values and add the other ones in 
         else:
             A_n_Ea_length = len(reactions_in_cti_file)*3
@@ -397,7 +415,7 @@ class OptMatrix(object):
         
                 
         else:
-            print('we do not have loop counter installed yet')
+            #print('we do not have loop counter installed yet')
             #need to check what we would need to do here 
             #should be tottal X ?
             Y = np.vstack(Y, -X['As_ns_Eas'])
@@ -680,9 +698,8 @@ class OptMatrix(object):
     
     
     
-    def breakup_delta_x(self, delta_x, 
+    def breakup_X(self, X, 
                         exp_dict_list:list, 
-                        X = np.array(()),
                         loop_counter:int = 0,
                         master_equation_uncertainty_df=None,
                         master_equation_reactions = [],
@@ -700,12 +717,12 @@ class OptMatrix(object):
         
         ##################################################################
         if loop_counter !=0:
-            X_new = X + delta_x
-        ##################################################################
+            X_new = X 
+        
             
         else:
-            X_new = delta_x
-        
+            X_new = X
+        ##################################################################
         X_new = list(X_new.flatten())            
         if exp_dict_list[0]['simulation'].kineticSens ==1:
             
@@ -854,12 +871,13 @@ class OptMatrix(object):
     #modelDataObject.sTimesz = sTimesZ
         c = np.dot(np.transpose(s_matrix),s_matrix)
         c=np.linalg.inv(c)
+        self.covariance = c
 
 #    
 #        sigma = self.sigma
 #        sTimessigma = sMatrix * (sigma.flatten()[:,np.newaxis])
 #       modelDataObject.StimesSigma = sTimessigma
-    
+        
     
         self.s_matrix = s_matrix
     
@@ -877,7 +895,7 @@ class OptMatrix(object):
         X = XlastItteration + delta_X
         self.X = X
 
-        return X
+        return X,c
             
     
     
