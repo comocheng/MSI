@@ -11,7 +11,7 @@ import numpy as np
 import cantera as ct
 from decimal import Decimal
 
-def write(solution,cwd=''):
+def write(solution,cwd='',file_name='',original_cti=''):
     """Function to write cantera solution object to cti file.
 
     :param solution:
@@ -22,19 +22,27 @@ def write(solution,cwd=''):
 
     >>> soln2cti.write(gas)
     """
-    
+   
     trimmed_solution = solution
+    
     input_file_name_stripped = trimmed_solution.name
+    
     if cwd !='':
         cwd =cwd
     else:
         cwd = os.getcwd()
     #pass in curret working directory , and change name to updated version?
-    output_file_name = os.path.join(
-                                    cwd,
-                                    'pym_' +
-                                    input_file_name_stripped +
-                                    '.cti')
+    if file_name == '':
+        output_file_name = os.path.join(
+                                        cwd,
+                                        'pym_' +
+                                        input_file_name_stripped +
+                                        '.cti')
+    else:
+        output_file_name = os.path.join(
+                                        cwd,
+                                        file_name +
+                                        '.cti')
     #output_file_name = filearg
     with open(output_file_name, 'w+') as f:
 
