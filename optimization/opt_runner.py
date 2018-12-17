@@ -132,8 +132,7 @@ class Optimization_Utility(object):
         
         shock_tube.run()
         ########################################################################
-        import pandas as pd
-        pd.DataFrame(shock_tube.kineticSensitivities[:,:,0]).to_csv('kinetic_sens_OH.csv')
+
         #check this tomorrow 
         ################################################################################
         int_ksens_exp_mapped= shock_tube.map_and_interp_ksens()#ksens is wiped on rerun so int it before
@@ -289,7 +288,7 @@ class Optimization_Utility(object):
         abs_data = abs_instance.superimpose_shock_tube(shock_tube,abs_loaded,experiment_dictonary['pathLength'],
                                                        kinetic_sens=kineticSens)
         
-        #print(abs_data)
+        print('first go')
         
         
         perturbed_coef = abs_instance.perturb_abs_coef(dk,
@@ -297,8 +296,10 @@ class Optimization_Utility(object):
                                               abs_loaded,
                                               experiment_dictonary['pathLength'],
                                               summed_data = abs_data[0]) 
-       
         
+        print('second go')
+       
+        #print(perturbed_coef)
         
         
         shock_tube.sensitivity_adjustment(temp_del = dk)
@@ -307,7 +308,7 @@ class Optimization_Utility(object):
         abs_phys_sens = abs_instance.absorb_phys_sensitivities(shock_tube,abs_data[0],abs_loaded,
                                                                experiment_dictonary['pathLength'],
                                                                dk = dk)
-        #int_ksens_exp_mapped= shock_tube.map_and_interp_ksens()
+        print('third go')
 
         
         loaded_experimental_data_absorbance = abs_instance.import_experimental_data(experiment_dictonary['absorbanceCsvFiles'])
@@ -384,8 +385,15 @@ class Optimization_Utility(object):
                 print('We do not have this simulation installed yet')
             
         return experiment_list
-    def looping_over_optimization():
-        return
+    def saving_experimental_dict(self,list_off_experiment_dictonaires):
+        uncertainty_list = []
+        for i,exp in enumerate(list_off_experiment_dictonaires):
+            if 'perturbed_coef' not in exp.keys():
+                uncertainty_list.append({})
+            else:
+                uncertainty_list.append(exp['uncertainty'])
+                            
+        return uncertainty_list
     
 
 

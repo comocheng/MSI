@@ -125,7 +125,8 @@ class OptMatrix(object):
                 p_sens_for_whole_simulation.append(ttl_phsycal_obs_for_exp)
 #######################################################################################################################################################               
 
-
+            
+            
             if 'perturbed_coef' in exp.keys():
                 ttl_absorbance_obs_for_exp = []
                 wavelengths = parsed_yaml_list[i]['absorbanceCsvWavelengths']
@@ -133,7 +134,6 @@ class OptMatrix(object):
                     perturbed_coefficeints = []
                     index_list = []
                     for xx in range(len(parsed_yaml_list[i]['coupledCoefficients'])):
-
                         for yy in range(len(parsed_yaml_list[i]['coupledCoefficients'][xx])):
                             ff = parsed_yaml_list[i]['functionalForm'][xx][yy]
                             #temp = list(parsed_yaml_list[i]['coupledCoefficients'][xx][yy])
@@ -284,10 +284,8 @@ class OptMatrix(object):
         
         absorb_coef_whole_simulation_with_padding = np.vstack((absorb_coef_whole_simulation_with_padding))  
         S_abs_coef  = absorb_coef_whole_simulation_with_padding
-        #print(np.shape(S_abs_coef))
-        #print(np.shape(S_psens))
-        #print(np.shape(S_ksens))
-        pd.DataFrame(S_abs_coef).to_csv('absorbance_coef_not_working.csv')
+
+        
 
         S_matrix = np.hstack((S_ksens,S_psens,S_abs_coef))
         shape = np.shape(S_matrix)[1]
@@ -295,6 +293,7 @@ class OptMatrix(object):
         identity_matrix = np.identity(shape)
         S_matrix = np.vstack((S_matrix,identity_matrix))
         self.S_matrix = S_matrix
+        
         return S_matrix 
 
                                 
@@ -418,7 +417,15 @@ class OptMatrix(object):
             #print('we do not have loop counter installed yet')
             #need to check what we would need to do here 
             #should be tottal X ?
-            Y = np.vstack(Y, -X['As_ns_Eas'])
+            
+            #clean this part of the code up here
+            temp_array = np.array(X['As_ns_Eas'])*-1
+            temp_array = temp_array.reshape((temp_array.shape[0],
+                                                      1))
+            
+            Y = np.vstack((Y, temp_array))
+            #clean this part of the code up here
+            #tab
             if master_equation_flag == True:
                 Y = np.vstack(Y,-X['molecular_parameters'])
             
@@ -451,7 +458,13 @@ class OptMatrix(object):
                     for variable in range(species_in_simulation):
                         Y_data_Frame.append('X'+'_'+str(variable)+'_'+'experiment'+'_'+str(i))
                 
-                Y = np.vstack((Y,-X['physical_observables']))
+                
+                
+                temp_array = np.array(X['physical_observables'])*-1
+                temp_array = temp_array.reshape((temp_array.shape[0],
+                                                      1))
+                
+                Y = np.vstack((Y,temp_array))
                 
         #Assembling the portion of the Y matrix for the absorbance coefficient sensitiviteis 
         pert_coef = {} #build a dict matching pert_coef to their experiment and wavelength.             
@@ -470,14 +483,21 @@ class OptMatrix(object):
         temp_zeros = np.zeros((num_ind_pert_coef,1))
         if loop_counter == 0:
             Y = np.vstack((Y,temp_zeros))
-        else:            
-            if 'absorb_coefficient' in X.keys():
-                Y = np.vstack((Y,-X['absorb_coefficient']))
+        else:  
+            if 'absorbance_coefficent_observables' in X.keys():
+                temp_array = np.array(X['absorbance_coefficent_observables'])
+                temp_array = temp_array[temp_array!=0]
+                temp_array = np.array(temp_array)*-1
+                
+                temp_array = temp_array.reshape((temp_array.shape[0],
+                                                      1))
+                
+                Y = np.vstack((Y,temp_array))
                 
         for x in range(num_ind_pert_coef):
             Y_data_Frame.append('Sigma'+'_'+str(x))
 
-                     
+       
         Y_data_Frame = pd.DataFrame({'value': Y_data_Frame,'ln_difference': Y.reshape((Y.shape[0],))})  
         self.Y_matrix = Y
         return Y, Y_data_Frame
@@ -494,29 +514,60 @@ class OptMatrix(object):
         Z_data_Frame = [] 
         sigma = []
         #need to append to sigma
-        def uncertainty_calc(relative_uncertainty,absolute_uncertainty,data):
-            length_of_data = data.shape[0]
-            relative_uncertainty_array = np.full((length_of_data,1),relative_uncertainty)
-            
-            if absolute_uncertainty != 0:
-            #check if this weighting factor is applied in the correct place 
-            #also check if want these values to be the natural log values 
-                absolute_uncertainty_array = np.divide(data,absolute_uncertainty)
-                total_uncertainty = np.log(1 + np.sqrt(np.square(relative_uncertainty_array) + np.square(absolute_uncertainty_array)))
-                un_weighted_uncertainty = total_uncertainty
-                 #weighting factor
-                total_uncertainty = (1/length_of_data**.5) * total_uncertainty
-            
-            else:
-                total_uncertainty = np.log(1 + np.sqrt(np.square(relative_uncertainty_array)))
-                #weighting factor
-                un_weighted_uncertainty = total_uncertainty
-                total_uncertainty = (1/length_of_data**.5) * total_uncertainty
+        def uncertainty_calc(relative_uncertainty,absolute_uncertainty,data,experimental_data):
+
+            if 'W' in list(experimental_data.columns):
+                weighting_factor = experimental_data['W'].values
                 
+                if 'Relative_Uncertainty' in list(experimental_data.columns):
+                    time_dependent_uncertainty = experimental_data['Relative_Uncertainty'].values
+                    un_weighted_uncertainty = copy.deepcopy(time_dependent_uncertainty)
+                    total_uncertainty = time_dependent_uncertainty/weighting_factor
+                    print(total_uncertainty)
+                    
+                else:
+                    length_of_data = data.shape[0]
+                    relative_uncertainty_array = np.full((length_of_data,1),relative_uncertainty) 
+                    un_weighted_uncertainty = copy.deepcopy(relative_uncertainty_array)
+                    total_uncertainty = un_weighted_uncertainty/weighting_factor
+                
+            
+            
+            elif 'Relative_Uncertainty' in list(experimental_data.columns):  
+                
+                time_dependent_uncertainty = experimental_data['Relative_Uncertainty'].values
+                #do we need to take the natrual log of this?
+                time_dependent_uncertainty = np.log(time_dependent_uncertainty+1)
+                #do we need to take the natrual log of this?
+                length_of_data = data.shape[0]
+                un_weighted_uncertainty = copy.deepcopy(time_dependent_uncertainty)
+                total_uncertainty = np.divide(time_dependent_uncertainty,(1/length_of_data**.5) )
+#                
+
+               
+            else:
+                length_of_data = data.shape[0]
+                relative_uncertainty_array = np.full((length_of_data,1),relative_uncertainty)
+                
+                if absolute_uncertainty != 0:
+                #check if this weighting factor is applied in the correct place 
+                #also check if want these values to be the natural log values 
+                    absolute_uncertainty_array = np.divide(data,absolute_uncertainty)
+                    total_uncertainty = np.log(1 + np.sqrt(np.square(relative_uncertainty_array) + np.square(absolute_uncertainty_array)))
+                    un_weighted_uncertainty = copy.deepcopy(total_uncertainty)
+                     #weighting factor
+                    total_uncertainty = np.divide(total_uncertainty,(1/length_of_data**.5) )
+                
+                else:
+                    total_uncertainty = np.log(1 + np.sqrt(np.square(relative_uncertainty_array)))
+                    #weighting factor
+                    un_weighted_uncertainty = copy.deepcopy(total_uncertainty)
+                   
+                    total_uncertainty = np.divide(total_uncertainty,(1/length_of_data**.5) )
 
             #make this return a tuple 
             return total_uncertainty,un_weighted_uncertainty
-            
+        #tab, start working here tomorrow with how we want to read in csv file     
         for i,exp_dic in enumerate(exp_dict_list):
             counter = 0
             for j,observable in enumerate((exp_dic['mole_fraction_observables']+
@@ -526,17 +577,17 @@ class OptMatrix(object):
                 elif observable in exp_dic['mole_fraction_observables']:
                     total_uncertainty,un_weighted_uncertainty = uncertainty_calc(exp_dic['uncertainty']['mole_fraction_relative_uncertainty'][counter],
                         exp_dic['uncertainty']['mole_fraction_absolute_uncertainty'][counter],
-                        exp_dic['experimental_data'][counter][observable].values)
+                        exp_dic['experimental_data'][counter][observable].values,exp_dic['experimental_data'][counter])
                     total_uncertainty = total_uncertainty.reshape((total_uncertainty.shape[0],
                                                       1))
                     un_weighted_uncertainty = un_weighted_uncertainty.reshape((un_weighted_uncertainty.shape[0],
                                                                                1))
                     
-                    
+                 #xp_dic['experimental_data'][counter][observable+'_ppm'].values,   
                 else:                
                     total_uncertainty,un_weighted_uncertainty = uncertainty_calc(exp_dic['uncertainty']['concentration_relative_uncertainty'][counter],
                          exp_dic['uncertainty']['concentration_absolute_uncertainty'][counter],
-                         exp_dic['experimental_data'][counter][observable+'_ppm'].values)
+                         exp_dic['experimental_data'][counter][observable+'_ppm'].values,exp_dic['experimental_data'][counter])
                    
                     total_uncertainty = total_uncertainty.reshape((total_uncertainty.shape[0],
                                                       1))
@@ -559,7 +610,7 @@ class OptMatrix(object):
                 for k,wl in enumerate(wavelengths):
                     total_uncertainty,un_weighted_uncertainty = uncertainty_calc(exp_dic['uncertainty']['absorbance_relative_uncertainty'][k],
                                                              exp_dic['uncertainty']['absorbance_absolute_uncertainty'][k],
-                                                             exp_dic['absorbance_experimental_data'][k]['Absorbance_'+str(wl)].values)
+                                                             exp_dic['absorbance_experimental_data'][k]['Absorbance_'+str(wl)].values,exp_dic['absorbance_experimental_data'][k])
                         
                     total_uncertainty = total_uncertainty.reshape((total_uncertainty.shape[0],
                                                   1))
@@ -584,7 +635,8 @@ class OptMatrix(object):
         
         
         reaction_uncertainty = pd.read_csv(reaction_uncertainty)
-        uncertainty_As = reaction_uncertainty['Uncertainty A (unit)'].values
+        #tab fix this correctly
+        uncertainty_As = reaction_uncertainty['Uncertainty A (unit)'].values + 1
         uncertainty_As = uncertainty_As.reshape((uncertainty_As.shape[0],
                                                   1))
         uncertainty_As = np.log(uncertainty_As)
@@ -598,7 +650,6 @@ class OptMatrix(object):
         uncertainty_ns = reaction_uncertainty['Uncertainty N (unit)'].values
         uncertainty_ns = uncertainty_ns.reshape((uncertainty_ns.shape[0],
                                                   1))
-        uncertainty_ns = np.log(uncertainty_ns)
         Z = np.vstack((Z,uncertainty_ns))
         sigma = np.vstack((sigma,uncertainty_ns))
         for variable in range(uncertainty_ns.shape[0]):
@@ -609,7 +660,7 @@ class OptMatrix(object):
         uncertainty_Eas = uncertainty_Eas.reshape((uncertainty_Eas.shape[0],
                                                   1))
      
-        uncertainty_Eas = np.log(uncertainty_Eas)
+        
         Z = np.vstack((Z,uncertainty_Eas))
         sigma = np.vstack((sigma,uncertainty_Eas))
         for variable in range(uncertainty_Eas.shape[0]):
@@ -700,6 +751,7 @@ class OptMatrix(object):
     
     def breakup_X(self, X, 
                         exp_dict_list:list, 
+                        exp_uncertainty_dict_list_original:list,
                         loop_counter:int = 0,
                         master_equation_uncertainty_df=None,
                         master_equation_reactions = [],
@@ -815,17 +867,23 @@ class OptMatrix(object):
         coef_dict = {}  
         coef_dict_list = []
         absorbance_coef_update_dict = {}
-        for i,exp_dic in enumerate(exp_dict_list):
-            if 'perturbed_coef' not in exp_dic.keys():
+        for i,exp_dic in enumerate(exp_uncertainty_dict_list_original):
+            if 'coupled_coef_and_uncertainty' not in exp_dic.keys():
                 continue
-            dictonary_of_coef_and_uncertainty = exp_dic['uncertainty']['coupled_coef_and_uncertainty']
+            dictonary_of_coef_and_uncertainty = exp_dic['coupled_coef_and_uncertainty']
+            #tab start working here tomorrow, need to pass in the original version of this dict 
+            #dictonary_of_coef_and_uncertainty = {(140000, 0.0): ([0.7], [0.0]), (1270000, 0.0): ([0.7], [0.0])}
+
             for x in dictonary_of_coef_and_uncertainty:
                 if x not in coef_dict.keys():
                     coef_dict[x] = dictonary_of_coef_and_uncertainty[x]
                 if x not in coef_dict_list:
                     coef_dict_list.append(x)
+                    
+                    
+                    
         start_abs = 0
-        stop_abs = 1          
+        stop_abs = 1         
         for i,cof in enumerate(coef_dict_list):
             temp=[]
          #   counter=1
@@ -843,7 +901,7 @@ class OptMatrix(object):
         
         # return everything in a dictonary??   
         absorbance_coefficients_for_Y = [item for sublist in absorbance_coefficients_for_Y for item in sublist] 
-        X_to_subtract_from_Y['absorbance_coefficent_observables'] = physical_observables_for_Y
+        X_to_subtract_from_Y['absorbance_coefficent_observables'] = absorbance_coefficients_for_Y
 #       
         if master_equation_flag == False:
             return deltaXAsNsEas,physical_observables,absorbance_coef_update_dict,X_to_subtract_from_Y
@@ -851,32 +909,38 @@ class OptMatrix(object):
             return deltaXAsNsEas,physical_observables,absorbance_coef_update_dict,X_to_subtract_from_Y,delta_x_molecular_params_by_reaction_dict
     
     
-    def matrix_manipulation(self,runCounter,XLastItteration = np.array(())):
+    def matrix_manipulation(self,runCounter,S_matrix,Y_matrix,z_matrix,XLastItteration = np.array(())):
 
     
     
         
-        S_matrix = self.S_matrix
-        Y_matrix = self.Y_matrix
-        z_matrix = self.z_matrix  
-
-
+       #self.S_matrix = self.S_matrix
+       # Y_matrix = self.Y_matrix
+       # z_matrix = self.z_matrix
+#
+#        for i in np.arange(933):
+#            z_matrix[i] = 1e9
+        for i in np.arange(76,81):
+            z_matrix[i] = 1e-9
+#            
+#        self.z_matrix = z_matrix
+        
+        #if you have to change z for testing do it here
+        ###################################################################################################
+        #z_matrix[-5:,0]=1e-9
+############################################################################################################
         one_over_z = np.true_divide(1,z_matrix)
         y_matrix = Y_matrix * one_over_z
         s_matrix = S_matrix * (one_over_z.flatten()[:,np.newaxis])
-    
+        self.y_matrix = y_matrix
+        
     
         sTimesZ = S_matrix * (z_matrix.flatten())[:,np.newaxis]
-    #modelDataObject.ss = s_matrix
-    #modelDataObject.sTimesz = sTimesZ
+
         c = np.dot(np.transpose(s_matrix),s_matrix)
         c=np.linalg.inv(c)
         self.covariance = c
 
-#    
-#        sigma = self.sigma
-#        sTimessigma = sMatrix * (sigma.flatten()[:,np.newaxis])
-#       modelDataObject.StimesSigma = sTimessigma
         
     
         self.s_matrix = s_matrix
@@ -895,25 +959,28 @@ class OptMatrix(object):
         X = XlastItteration + delta_X
         self.X = X
 
-        return X,c
+        return X,c,s_matrix,y_matrix,delta_X,self.z_matrix
             
     
     
     
         
 class Adding_Target_Values(meq.Master_Equation):
-    def __init__(self,S_matrix,Y_matrix,z_matrix,sigma):
+    def __init__(self,S_matrix,Y_matrix,z_matrix,sigma,Y_data_Frame,z_data_Frame):
         self.S_matrix = S_matrix
         self.Y_matrix = Y_matrix
         self.z_matrix = z_matrix
         self.sigma = sigma
+        self.Y_data_Frame = Y_data_Frame
+        self.z_data_Frame = z_data_Frame
         meq.Master_Equation.__init__(self)
         
          
         
     def target_values_Y(self,target_value_csv,exp_dict_list:list):
         import cantera as ct
-        
+        Y_df_list = []
+        Y_values = []
         #make sure we put the reactions into the file in the units cantera uses
         target_value_csv = pd.read_csv(target_value_csv)
         target_reactions = target_value_csv['Reaction']
@@ -935,10 +1002,17 @@ class Adding_Target_Values(meq.Master_Equation):
                 #check and make sure we are subtracting in the correct order 
             difference = np.log(target_k[i]) - np.log(k) 
             diff_in_ks_for_Y.append(difference)
+            Y_df_list.append(reaction)
+            Y_values.append(difference)
             
         k_targets_for_y = np.array(diff_in_ks_for_Y)
         k_targets_for_y = k_targets_for_y.reshape((k_targets_for_y.shape[0],1))
-        return k_targets_for_y
+        Y_values = np.array(Y_values)
+        
+        Y_df_temp = pd.DataFrame({'value': Y_df_list,'ln_difference': Y_values.reshape((Y_values.shape[0],))}) 
+        self.Y_data_Frame = self.Y_data_Frame.append(Y_df_temp, ignore_index=True)
+        
+        return k_targets_for_y,self.Y_data_Frame
     
     def target_values_for_Z(self,target_value_csv):
         z_over_w = []
@@ -946,18 +1020,24 @@ class Adding_Target_Values(meq.Master_Equation):
         target_value_csv = pd.read_csv(target_value_csv)
         target_ln_uncertainty = target_value_csv['ln_unc_k']
         target_W = target_value_csv['W']
-        
+        target_reactions = target_value_csv['Reaction']
+        z_df_list=[]
+        z_values = []
         for i,value in enumerate(target_ln_uncertainty):
             temp = np.divide(value,target_W[i])
             sigma.append(value)
             z_over_w.append(temp)
+            z_values.append(temp)
+            z_df_list.append(target_reactions[i])
             
         k_targets_for_z = np.array(z_over_w)
         sigma = np.array(sigma)
         sigma = sigma.reshape((sigma.shape[0],1))
+        z_values = np.array(z_values)
         k_targets_for_z = k_targets_for_z.reshape((k_targets_for_z.shape[0],1))
-            
-        return k_targets_for_z,sigma
+        Z_data_Frame_temp = pd.DataFrame({'value': z_df_list,'Uncertainty': z_values.reshape((z_values.shape[0],))})
+        self.z_data_Frame = self.z_data_Frame.append(Z_data_Frame_temp, ignore_index=True)    
+        return k_targets_for_z,sigma,self.z_data_Frame
     
 
 
@@ -1039,7 +1119,7 @@ class Adding_Target_Values(meq.Master_Equation):
                     #decide if this mapping is correct             
                 A_temp[0,reactions_in_cti_file.index(reaction)] = 1
                 N_temp [0,reactions_in_cti_file.index(reaction)] = np.log(target_temp[i])
-                Ea_temp[0,reactions_in_cti_file.index(reaction)] = (1/target_temp[i])
+                Ea_temp[0,reactions_in_cti_file.index(reaction)] = (-1/target_temp[i])
                 
                 As.append(A_temp)
                 Ns.append(N_temp)
