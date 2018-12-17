@@ -250,7 +250,8 @@ def cti_write2(x={},original_cti='',master_rxns='',master_index=[],MP={},working
     
     #Rinv = 1/R #cal/mol*K
     E = 1 #going test for energy
-    T = 4.186e3
+    #T = 4184
+    T=ct.gas_constant
     if x!={}:
         
         for j in np.arange(original_rxn_count-1):
@@ -270,7 +271,6 @@ def cti_write2(x={},original_cti='',master_rxns='',master_index=[],MP={},working
                        A=NewModel.reaction(j).high_rate.pre_exponential_factor
                        n=NewModel.reaction(j).high_rate.temperature_exponent
                        Ea=NewModel.reaction(j).high_rate.activation_energy
-                       
                        NewModel.reaction(j).high_rate=ct.Arrhenius(A*np.exp(x['r'+str(j)]['A']),n+x['r'+str(j)]['n'],Ea+x['r'+str(j)]['Ea']*T)
                        A=NewModel.reaction(j).low_rate.pre_exponential_factor
                        n=NewModel.reaction(j).low_rate.temperature_exponent
