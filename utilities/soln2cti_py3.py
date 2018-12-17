@@ -111,7 +111,7 @@ def write(solution,cwd='',file_name='',original_cti=''):
             Builds Arrhenius coefficient string
 
             :param equation_objects
-                cantera equation object
+                cantera equation object1
             :param equation_type:
                 string of equation type
             """
