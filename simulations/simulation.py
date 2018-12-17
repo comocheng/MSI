@@ -9,7 +9,7 @@ class Simulation(object):
         Input:
             - pressure = float, pressure in [atm]
             - temperature = float, temperature in [K]
-            - observables = list, species which sensitivity analysis is perfomred for
+            - observables = list, species which sensitivity analysis is performed for
             - kineticSen = integer, 0 for off, 1 for on 
             - physicalSens = integer, 0 for off, 1 for on 
             - processor = ctp.Processor
@@ -48,14 +48,10 @@ class Simulation(object):
                 if x != '':
                     conditions_copy[x] = conditions_copy[x]+conditions_perturb[x]
             new_conditions = conditions_copy 
-        #print(new_conditions)
-        self.processor.solution.TPX=temperature,pressure*self.pasc_to_atm, new_conditions
-        #print(self.conditions)#stub
         
-
-                
-       # rest conditions by looping over this direction and subtracting off the value and restting conditions ?
-       
+        self.processor.solution.TPX=temperature,pressure*self.pasc_to_atm, new_conditions
+        
+        
            
     #always overwritten since each simulation is very different
     def run(self):
@@ -93,31 +89,3 @@ class Simulation(object):
 
         return data
 
-'''    #integrate with sens adjustment 
-    def species_adjustment(spec_del={}):
-        gas = self.solutionObject()
-        ar = []
-        for x in np.nditer(gas.TPX[2]):
-            if x != 0:
-                temp1 = np.where(gas.TPX[2] == x)
-                temp2 = temp1[0]
-                if np.shape(temp2)[0] == 1:
-                    ar.append(temp2[0])
-                    
-                else:
-                    for x in np.nditer(temp2):
-                        if x not in ar:
-                            ar.append(int(x))
-        temp3 = gas.TPX[2]
-        timeHistoryList = []
-        for x in ar:
-            temp3 = gas.TPX[2]
-            temp3[x] = self.parameterAdjustment(temp3[x])
-            gas.TPX = self.temperature,self.pressure*101325,self.conditions
-            timeHistory = self.shockTubeSimulation()
-            timeHistoryList.append(timeHistory)
-            
-            
-       
-
-        return timeHistoryList '''

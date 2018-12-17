@@ -1,6 +1,7 @@
 import MSI.simulations as sim
 import numpy as np
 import pandas as pd
+import cantera as ct
 
 class Absorb:
     def __init__(self):
@@ -45,20 +46,25 @@ class Absorb:
                     else:                                
                         self.saved_perturb_data.append([(species,species_and_wavelengths[species][index],cc),
                                                         self.ln_abs(changed_data,summed_data,dk=orig_cc[0]*del_param)])
+                        #print(changed_data)
 #somewehre around her e
-                if orig_cc[1] != 0:    
+                if orig_cc[1] != 0:
                     if species_and_functional_form[species][i] != 'B':
                         cc = (orig_cc[0],orig_cc[1]+orig_cc[1]*del_param)
-                        species_and_coupled_coefficients[i] = cc
+
+                        species_and_coupled_coefficients[species][i] = cc
+
                         changed_data = self.get_abs_data(simulation,
                                                          absorb,
                                                          pathlength,
                                                          kinetic_sens = 0,
                                                          pert_spec_coef = species_and_coupled_coefficients)
                         if summed_data is None:
+                            
                             self.saved_perturb_data.append([(species,species_and_wavelengths[species][index],cc),
                                                             changed_data])
-                        else:                                
+                        else:  
+                                                         
                             self.saved_perturb_data.append([(species,species_and_wavelengths[species][index],cc),
                                                             self.ln_abs(changed_data,summed_data,dk=orig_cc[1]*del_param)])
                     else:
@@ -128,6 +134,7 @@ class Absorb:
             for i in range(0,len(orig_data[key])):
                 if sim is not None and index is not None: 
                     temp.append((np.log(changed_data[key][i]) - np.log(orig_data[key][i]))/sim.dk[index]) 
+                    
                 else:
                     temp.append((np.log(changed_data[key][i]) - np.log(orig_data[key][i]))/dk) 
             ln_dict[key] = temp
@@ -139,7 +146,8 @@ class Absorb:
         Ea = np.zeros(A.shape)
         for x,column in enumerate(A.T):
             N[:,x]= np.multiply(column,np.log(self.timeHistories[0]['temperature'])) if time_history is None else np.multiply(column,np.log(time_history['temperature']))
-            to_mult_ea = np.divide(-1,np.multiply(8314.4621,self.timeHistories[0]['temperature'])) if time_history is None else np.divide(-1,np.multiply(8314.4621,time_history['temperature']))
+            #to_mult_ea = np.divide(-1,np.multiply(ct.gas_constant,self.timeHistories[0]['temperature'])) if time_history is None else np.divide(-1,np.multiply(ct.gas_constant,time_history['temperature']))
+            to_mult_ea = np.divide(-1,np.multiply(1,self.timeHistories[0]['temperature'])) if time_history is None else np.divide(-1,np.multiply(1,time_history['temperature']))
             Ea[:,x]= np.multiply(column,to_mult_ea)
 
         return [A,N,Ea]
@@ -266,6 +274,7 @@ class Absorb:
     def get_abs_data(self, simulation, absorb,pathlength, kinetic_sens = 0,time_history=None, pert_spec_coef=None):
         
         coupled_coefficients = self.couple_parameters(absorb)
+       # print(coupled_coefficients,'inside get abs data function')
         if coupled_coefficients == -1:
             print("Error: could not construct coupled coefficients")
             return -1
@@ -277,6 +286,7 @@ class Absorb:
         #group data by species for easier manipulation
         species_and_wavelengths = dict(list(zip(species, wavelengths)))
         species_and_coupled_coefficients = dict(list(zip(species,coupled_coefficients))) if pert_spec_coef is None else pert_spec_coef
+        #print(species_and_coupled_coefficients,'inside absorption')
         species_and_functional_form = dict(list(zip(species,functional_form))) 
         
         flat_list = [item for sublist in wavelengths for item in sublist]
@@ -357,8 +367,8 @@ class Absorb:
                 if ff == 'B':
                     epsilon = (cc[0]*(1-(np.exp(np.true_divide(cc[1],temperature_matrix)))))
                 if ff == 'C':
-                    epsilon = cc[0] 
-                    if type(epsilon)==int:
+                    epsilon = cc[0]                     
+                    if type(epsilon)==float or type(epsilon)==int:
                         epsilon = np.ones(shape=temperature_matrix.shape)
                         epsilon *= cc[0]
                 if wavelength == 215: #does this really need to be here, takes care of specific paper case?
@@ -391,11 +401,14 @@ class Absorb:
         temperature_matrix = time_history['temperature'].values
         pressure_matrix = time_history['pressure'].values
         if ff == 'A':
+            #tab
+            print(cc[0],'this is cc0' , cc[1],'this is cc1' )
             epsilon = ((cc[1]*temperature_matrix) + cc[0])
         if ff == 'B':
             epsilon = (cc[0]*(1-(np.exp(np.true_divide(cc[1],temperature_matrix)))))
         if ff == 'C':
             epsilon = cc[0] 
+            print(cc[0],'this is cc0' , cc[1],'this is cc1' )
             if type(epsilon)==int:
                 epsilon = np.ones(shape=temperature_matrix.shape)
                 epsilon *= cc[0]

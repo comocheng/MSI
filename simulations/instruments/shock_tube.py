@@ -316,9 +316,10 @@ class shockTube(sim.Simulation):
             for x,column in enumerate(sheetA.T):
                 N[:,x,i]= np.multiply(column,np.log(self.timeHistories[0]['temperature'])) if time_history is None else np.multiply(column,np.log(time_history['temperature']))
                 #not sure if this mapping is correct, check with burke and also update absorption mapping
-                to_mult_ea = np.divide(-1,np.multiply(8314.4621,self.timeHistories[0]['temperature'])) if time_history is None else np.divide(-1,np.multiply(8314.4621,time_history['temperature']))
+                #to_mult_ea = np.divide(-1,np.multiply(ct.gas_constant,self.timeHistories[0]['temperature'])) if time_history is None else np.divide(-1,np.multiply(ct.gas_constant,time_history['temperature']))
+                to_mult_ea = np.divide(-1,np.multiply(1,self.timeHistories[0]['temperature'])) if time_history is None else np.divide(-1,np.multiply(1,time_history['temperature']))
                 Ea[:,x,i]= np.multiply(column,to_mult_ea)
-
+                
         return {'A':self.interpolate_experimental_kinetic(A),
                 'N':self.interpolate_experimental_kinetic(N),
                 'Ea':self.interpolate_experimental_kinetic(Ea)}
@@ -455,6 +456,8 @@ class shockTube(sim.Simulation):
         experimentalData = [pd.read_csv(csv) for csv in csvFileList]
         experimentalData = [experimentalData[x].dropna(how='any') for x in range(len(experimentalData))]
         experimentalData = [experimentalData[x].apply(pd.to_numeric, errors = 'coerce').dropna() for x in range(len(experimentalData))]
+        for x in range(len(experimentalData)):
+            experimentalData[x] = experimentalData[x][~(experimentalData[x][experimentalData[x].columns[1]] < 0)]
         self.experimentalData = experimentalData
         return experimentalData
 
@@ -475,4 +478,5 @@ class shockTube(sim.Simulation):
             temp.columns = p_and_t
             list_of_df.append(temp)
             self.pressureAndTemperatureToExperiment = list_of_df
+            
         return list_of_df

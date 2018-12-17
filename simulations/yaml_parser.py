@@ -1,11 +1,12 @@
 import yaml 
 import shutil
 import numpy as np
+import copy
 
 # subpackage for reading yaml files that describe simulations and absorbance data
 class Parser(object):
-    def __init__(self):
-        self.original_experimental_conditions =  None
+    def __init__(self,original_experimental_conditions=None):
+        self.original_experimental_conditions =  original_experimental_conditions
        
 
     #config is a dict containing the yaml information
@@ -252,7 +253,14 @@ class Parser(object):
                 mole_fractions = self.original_experimental_conditions[yaml_file]['MoleFractions']
                 conditions = self.original_experimental_conditions[yaml_file]['conditions']
                 
-   
+                print('__________________________________________________________________________')
+                print('loop:',loop_counter)
+                print(temp)
+                print(press)
+                print(conditions)
+                print('__________________________________________________________________________')
+                
+                
                 updatedTemp = np.exp(physical_observables_updates_list[yaml_file]['T_experiment_'+str(yaml_file)]) * temp
                 updatedTemp = round(updatedTemp,9)
                 updatedPress = np.exp(physical_observables_updates_list[yaml_file]['P_experiment_'+str(yaml_file)]) * press
@@ -294,15 +302,21 @@ class Parser(object):
                     yaml.safe_dump(config2, f,default_flow_style=False)
                     
   # make a list of updated yaml files here that we return from this and then use these names       
-          
-        return updated_file_name_list
+        if loop_counter ==0:  
+            return updated_file_name_list
+        else:
+            return file_name_list
     
     def absorption_file_updates(self,file_name_list,
                           parsed_yaml_list,
                           experiment_dict_list,
                           absorption_observables_updates_dict,
                           loop_counter=0):
-
+        
+        
+        
+        
+        #change is happening somewhere after here 
         for yaml_file in range(len(file_name_list)):
             if len(file_name_list[yaml_file])<2:
                 continue
@@ -310,15 +324,15 @@ class Parser(object):
             if loop_counter ==0:
                 new_absorption_file_name = self.yaml_file_copy(file_name_list[yaml_file][1])
                 file_name_list[yaml_file][1] = new_absorption_file_name
-
+                
                 
             else:
                 new_absorption_file_name = file_name_list[yaml_file][1]
-                       
+                
+            
             coupledCoefficients = self.original_experimental_conditions[yaml_file]['coupledCoefficients']
-            coupledCoefficentsUpdated = coupledCoefficients
-
-             
+            coupledCoefficentsUpdated = copy.deepcopy(coupledCoefficients)
+            ########changes somewhere down there
             for species in range(len(coupledCoefficients)):
                 for wavelength in range(len(coupledCoefficients[species])):
                     lst = list(coupledCoefficients[species][wavelength])
@@ -331,8 +345,9 @@ class Parser(object):
 
                     coupledCoefficentsUpdated[species][wavelength] = tuple(temp)
                     
-            combinationOfNewParameters = list(map(list, list(zip(*(list(map(list, list(zip(*x)))) for x in coupledCoefficients)))))
+            combinationOfNewParameters = list(map(list, list(zip(*(list(map(list, list(zip(*x)))) for x in coupledCoefficentsUpdated)))))
             parameterOnesUpdated = combinationOfNewParameters[0]
+             
 
             for x in range(len(parameterOnesUpdated)):
                 for y in range(len(parameterOnesUpdated[x])):
@@ -344,7 +359,8 @@ class Parser(object):
             for x in range(len(parameterTwosUpdated)):
                 for y in range(len(parameterTwosUpdated[x])):
                     parameterTwosUpdated[x][y] = round(parameterTwosUpdated[x][y], 8)
-                    
+            
+
             with open(new_absorption_file_name)as f:
                 config3 = yaml.safe_load(f)
             
