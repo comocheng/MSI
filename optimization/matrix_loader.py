@@ -523,7 +523,7 @@ class OptMatrix(object):
                     time_dependent_uncertainty = experimental_data['Relative_Uncertainty'].values
                     un_weighted_uncertainty = copy.deepcopy(time_dependent_uncertainty)
                     total_uncertainty = time_dependent_uncertainty/weighting_factor
-                    print(total_uncertainty)
+                    
                     
                 else:
                     length_of_data = data.shape[0]
@@ -918,9 +918,9 @@ class OptMatrix(object):
        # Y_matrix = self.Y_matrix
        # z_matrix = self.z_matrix
 #
-#        for i in np.arange(933):
-#            z_matrix[i] = 1e9
-        for i in np.arange(76,81):
+        for i in np.arange(933):
+            z_matrix[i] = 1e9
+        for i in np.arange(1008,1013):
             z_matrix[i] = 1e-9
 #            
 #        self.z_matrix = z_matrix
@@ -938,6 +938,7 @@ class OptMatrix(object):
         sTimesZ = S_matrix * (z_matrix.flatten())[:,np.newaxis]
 
         c = np.dot(np.transpose(s_matrix),s_matrix)
+        
         c=np.linalg.inv(c)
         self.covariance = c
 

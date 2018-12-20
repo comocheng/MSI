@@ -210,6 +210,7 @@ class MSI_shocktube_optimization(object):
             self.s_matrix = s_matrix
             self.y_matrix = y_matrix
             self.delta_X = delta_X
+            #tab
             #self.z_matrix = z_matrix
             
         else:
@@ -220,7 +221,8 @@ class MSI_shocktube_optimization(object):
             self.y_matrix = y_matrix
             self.delta_X = delta_X
             #self.z_matrix = z_matrix
-            
+            #tab
+
         
 
         if self.master_equation_flag == True:
