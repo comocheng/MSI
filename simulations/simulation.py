@@ -16,6 +16,7 @@ class Simulation(object):
             - cti_path = string, path to cti file, will construct an internal processor
             
         '''
+        #set up processor and initialize all variables  common to every simulation  
         if processor!=None and cti_path!="":
             print("Error: Cannot give both a processor and a cti file path, pick one")
         elif processor==None and cti_path=="":
@@ -35,7 +36,7 @@ class Simulation(object):
         '''
         Set solution object for a simulation
         '''
-        
+        #set the temperature, pressure and species mole fractions for the simulation
         if temperature== -1:
             temperature = self.temperature
         if pressure == -1:
@@ -43,11 +44,15 @@ class Simulation(object):
         if conditions_perturb == {}:
             new_conditions = self.conditions
         else:
+            #make copy of the original mole fractions so they can be changed 
+            #for sensitivity analysis but the original ones are saved 
             conditions_copy = copy.deepcopy(self.conditions)
             for x in conditions_perturb.keys():
                 if x != '':
-                    conditions_copy[x] = conditions_copy[x]+conditions_perturb[x]
-            new_conditions = conditions_copy 
+                    
+                  
+                    conditions_copy[x] = ((conditions_copy[x]+conditions_perturb[x])*(1-conditions_copy[x]))/((1-conditions_copy[x])-(conditions_copy[x]+conditions_perturb[x]))
+            new_conditions = conditions_copy
         
         self.processor.solution.TPX=temperature,pressure*self.pasc_to_atm, new_conditions
         
@@ -56,18 +61,26 @@ class Simulation(object):
     #always overwritten since each simulation is very different
     def run(self):
         print("Error: Simulation class itself does not implement the run method, please run a child class")
-
-
+        '''
+        Run simulation
+        '''
+        # run the simulation 
     def sensitivity_adjustment(self,temp_del:float=0.0,
                                pres_del:float=0.0,
                                spec_pair:(str,float)=('',0.0)):
-
+        '''
+          Passes the Perturbed observable to the setTPX function. Temperature and pressure 
+        are passed and set directly species need to go through an additional step in the 
+        setTPX function. 
+        '''
         if spec_pair[0] != '':
             
-       
+           # calculates the value to run the sensitivity calculation at 
+           #for physical observables 
            self.setTPX(self.temperature+self.temperature*temp_del,
                    self.pressure+self.pressure*pres_del,
                    {spec_pair[0]:self.conditions[spec_pair[0]]*spec_pair[1]})
+          
            
         else:
            self.setTPX(self.temperature+self.temperature*temp_del,
@@ -82,6 +95,13 @@ class Simulation(object):
     def species_adjustment(self,spec_del:float=0.0):
         inert_species=['Ar','AR','HE','He','Kr','KR',
                        'Xe','XE','NE','Ne']
+        
+        '''
+        Creates tuples of specie that need to be perturbed and the
+        percent value by which to perturb its mole fraction 
+        '''
+        # gets the mole fraction and the species which are going to be 
+        #perturbed in order to run a sensitivity calculation 
         data = ''
         for x in self.conditions.keys():
             if x not in inert_species:
