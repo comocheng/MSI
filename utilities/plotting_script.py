@@ -261,7 +261,6 @@ class Plotting(object):
                 gas.TPX = temperature,pressure*101325,conditions
                 Temp.append(temperature)
                 k.append(gas.forward_rate_constants[reaction_number])
-            
             return Temp,k
 
         def calculate_sigmas_for_rate_constants(k_target_value_S_matrix,k_target_values_parsed_csv,unique_reactions,gas,covarience):
@@ -343,9 +342,9 @@ class Plotting(object):
                 
                 plt.semilogy(Temp_optimized,k_optimized,'b')
                 #calculate sigmas 
-
-                high_error_optimized = np.exp(sigma_list_for_target_ks_optimized[i])
-                
+                print(sigma_list_for_target_ks_optimized[i])
+                high_error_optimized = np.exp(np.array(sigma_list_for_target_ks_optimized[i]))
+                print(high_error_optimized)
                 high_error_optimized = np.multiply(high_error_optimized,target_value_ks_calculated_with_cantera_optimized[i])
                 
                 
@@ -356,12 +355,14 @@ class Plotting(object):
                 
                 a, b = zip(*sorted(zip(target_value_temps_optimized[i],high_error_optimized)))
 
-                plt.scatter(a,b)
+                plt.scatter(a,b,color='blue')
+                print(a,b)
                 #plt.semilogy(a,b,'b--')
                 
                 a, b = zip(*sorted(zip(target_value_temps_optimized[i],low_error_optimized)))  
                 #plt.semilogy(a,b,'b--')
-                plt.scatter(a,b)
+                plt.scatter(a,b,color='blue')
+                print(a,b)
                 Temp_original,k_original = rate_constant_over_temperature_range_from_cantera(unique_reactions_original[unique_reactions_original.index(reaction)],
                                                                   gas_original,
                                                                   initial_temperature=250,
@@ -380,14 +381,15 @@ class Plotting(object):
                 
                 a, b = zip(*sorted(zip(target_value_temps_original[unique_reactions_original.index(reaction)],high_error_original)))  
                 #plt.semilogy(a,b,'r--')
-                plt.scatter(a,b)
+                plt.scatter(a,b,color='red')
                 
                 
                 a, b = zip(*sorted(zip(target_value_temps_original[unique_reactions_original.index(reaction)],low_error_original)))  
                 #plt.semilogy(a,b,'r--')
-                plt.scatter(a,b)
+                plt.scatter(a,b,color='red')
                 
                 plt.semilogy(target_value_temps_optimized[i],target_value_ks_optimized[i],'o',color='black')
+                
                 plt.xlabel('Temperature (K)')
                 plt.ylabel('Kmol/m^3-s')
                 plt.title(reaction_list_from_mechanism[reaction])
@@ -417,7 +419,7 @@ class Plotting(object):
             for i,reaction in enumerate(unique_reactions_optimized):
                 plt.figure()
                 Temp_optimized,k_optimized = rate_constant_over_temperature_range_from_cantera(reaction,
-                                                                  gas_original,
+                                                                  gas_optimized,
                                                                   initial_temperature=250,
                                                                   final_temperature=2500,
                                                                   pressure=1,
