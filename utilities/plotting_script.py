@@ -642,7 +642,7 @@ class Plotting(object):
                     if plot_number==0:
                         plt.title('Experiment_'+str(experiment_number+1)+'_'+list_of_experiment_observables[plot_number])
                     plt.plot(time_profiles[plot_number],sensitivities[plot_number][:,c],label = observables_list[top_columns])  
-                    plt.legend()
+                    plt.legend(loc='upper center',ncol=3, bbox_to_anchor=(1.5, 0))
 
            
                
