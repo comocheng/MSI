@@ -916,12 +916,12 @@ class OptMatrix(object):
         
        #self.S_matrix = self.S_matrix
        # Y_matrix = self.Y_matrix
-       # z_matrix = self.z_matrix
-#
-        for i in np.arange(933):
-            z_matrix[i] = 1e9
-        for i in np.arange(1008,1013):
-            z_matrix[i] = 1e-9
+#       # z_matrix = self.z_matrix
+##
+#        for i in np.arange(933):
+#            z_matrix[i] = 1e9
+#        for i in np.arange(1008,1013):
+#            z_matrix[i] = 1e-9
 #            
 #        self.z_matrix = z_matrix
         
