@@ -401,14 +401,13 @@ class Absorb:
         temperature_matrix = time_history['temperature'].values
         pressure_matrix = time_history['pressure'].values
         if ff == 'A':
-            #tab
-            print(cc[0],'this is cc0' , cc[1],'this is cc1' )
+
             epsilon = ((cc[1]*temperature_matrix) + cc[0])
         if ff == 'B':
             epsilon = (cc[0]*(1-(np.exp(np.true_divide(cc[1],temperature_matrix)))))
         if ff == 'C':
             epsilon = cc[0] 
-            print(cc[0],'this is cc0' , cc[1],'this is cc1' )
+
             if type(epsilon)==int:
                 epsilon = np.ones(shape=temperature_matrix.shape)
                 epsilon *= cc[0]
