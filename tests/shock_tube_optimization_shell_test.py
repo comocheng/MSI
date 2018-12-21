@@ -30,24 +30,27 @@ import MSI.utilities.plotting_script as plotter
 #                                                   'uncertainty_test.csv','FFCM1_custom_target_value_test.csv' )
  #burke_target_value_test.csv                
 files_to_include = [['Hong_1.yaml']]                                  
-numer_of_iterations = 2
+numer_of_iterations = 3
 cti_file = 'chem_original_burke.cti'
 working_directory = 'MSI/data/test_data'
 reaction_uncertainty_csv = 'burke_uncertainty_test.csv'
 
 rate_constant_target_value_data = 'burke_target_value_single_reactions.csv'
+#this would be an empty string '' if you do not want to include it 
 run_with_k_target_values = 'On'
-
+#this could be 'On'
 
 rate_constant_target_value_data_for_plotting = 'burke_target_value_single_reactions.csv'
 
-MSI_st_instance_one = stMSI.MSI_shocktube_optimization('chem_original_burke.cti',
+
+
+MSI_st_instance_one = stMSI.MSI_shocktube_optimization(cti_file,
                                                    .01,
                                                    1,
                                                    1,
-                                                   'MSI/data/test_data',
+                                                   working_directory,
                                                    files_to_include,                 
-                                                   'burke_uncertainty_test.csv','burke_target_value_single_reactions.csv' )
+                                                   reaction_uncertainty_csv,rate_constant_target_value_data )
 MSI_st_instance_one.one_run_shock_tube_optimization()
 
 S_matrix_original = MSI_st_instance_one.S_matrix
@@ -58,13 +61,13 @@ X_one_itteration = MSI_st_instance_one.X
 
 
 
-MSI_st_instance_two = stMSI.MSI_shocktube_optimization('chem_original_burke.cti',
+MSI_st_instance_two = stMSI.MSI_shocktube_optimization(cti_file,
                                                    .01,
                                                    1,
                                                    1,
                                                    'MSI/data/test_data',
                                                    files_to_include,                 
-                                                   'burke_uncertainty_test.csv','burke_target_value_single_reactions.csv' )
+                                                   reaction_uncertainty_csv,rate_constant_target_value_data )
 
 
 
@@ -126,7 +129,7 @@ plotting_instance = plotter.Plotting(S_matrix,
                                      Ydf,
                                      target_value_rate_constant_csv= MSI_st_instance_two.data_directory +'/'+'burke_target_value_single_reactions.csv' ,
                                      k_target_value_S_matrix =k_target_value_S_matrix,
-                                     k_target_values='On')
+                                     k_target_values=run_with_k_target_values)
 
 observable_counter_and_absorbance_wl,length_of_experimental_data = plotting_instance.lengths_of_experimental_data()
 sigmas_optimized,test = plotting_instance.calculating_sigmas(S_matrix,covarience)
