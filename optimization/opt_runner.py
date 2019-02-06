@@ -288,7 +288,7 @@ class Optimization_Utility(object):
         abs_data = abs_instance.superimpose_shock_tube(shock_tube,abs_loaded,experiment_dictonary['pathLength'],
                                                        kinetic_sens=kineticSens)
         
-        print('first go')
+        #print('first go')
         
         
         perturbed_coef = abs_instance.perturb_abs_coef(dk,
@@ -297,7 +297,7 @@ class Optimization_Utility(object):
                                               experiment_dictonary['pathLength'],
                                               summed_data = abs_data[0]) 
         
-        print('second go')
+        #print('second go')
        
         #print(perturbed_coef)
         

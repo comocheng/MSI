@@ -1,3 +1,4 @@
+
 import sys
 sys.path.append('.') #get rid of this at some point with central test script or when package is built
 
@@ -7,16 +8,15 @@ import MSI.optimization.matrix_loader as ml
 import MSI.optimization.opt_runner as opt
 import MSI.simulations.absorbance.curve_superimpose as csp
 import MSI.simulations.yaml_parser as yp
-import MSI.master_equation.master_equation as meq
+import MSI.master_equation.master_equation_six_parameter_fit as mespf
 import MSI.cti_core.cti_combine as ctic
 import copy
 import cantera as ct
 import numpy as np
 import pickle
 
-#
 
-class MSI_shocktube_optimization(object):
+class MSI_shocktube_optimization_six_parameter_fit(object):
         
     def __init__(self, cti_file:str,perturbment:int,
                  kineticSens:int,physicalSens:int,
@@ -25,8 +25,11 @@ class MSI_shocktube_optimization(object):
                  k_target_values_csv:str,
                  master_equation_reactions:list=[],
                  molecular_parameter_sensitivities:dict={},
+                 six_parameter_fit_sensitivities:dict={},
                  master_reaction_equation_cti_name:str = '',
-                 master_index = []):
+                 master_index = [],
+                 master_equation_uncertainty_df = None,
+                 six_paramter_fit_nominal_parameters_dict = None):
         
         self.cti_file_name = cti_file
         copy.deepcopy(self.cti_file_name)
@@ -43,13 +46,19 @@ class MSI_shocktube_optimization(object):
         self.reaction_uncertainty_csv = reaction_uncertainty_csv
         self.k_target_values_csv = k_target_values_csv
         self.master_equation_reactions = master_equation_reactions
+        self.MP_for_S_matrix = np.array(())
         if bool(self.master_equation_reactions):
             self.master_equation_flag = True
             self.master_reaction_equation_cti_name = master_reaction_equation_cti_name
             self.master_index = master_index
+            self.master_equation_uncertainty_df = master_equation_uncertainty_df
+            self.six_paramter_fit_nominal_parameters_dict = six_paramter_fit_nominal_parameters_dict
+            self.six_parameter_fit_sensitivities = six_parameter_fit_sensitivities
         else:
             self.master_equation_flag=False
-        self.sensitivity_dict = molecular_parameter_sensitivities
+            self.master_equation_uncertainty_df=None
+        self.molecular_parameter_sensitivities = molecular_parameter_sensitivities
+       
         
     # call all of leis functions where we do the molecular paramter stuff and turn a flag on 
     
@@ -145,61 +154,113 @@ class MSI_shocktube_optimization(object):
         #maybe save this and just pass it in 
         return
     def master_equation_s_matrix_building(self,loop_counter=0):
-        master_equation_instance = meq.Master_Equation()
-        self.master_equation_instance = master_equation_instance
-        mapped_to_alpha_full_simulation,nested_list = master_equation_instance.map_to_alpha(self.sensitivity_dict,
-                                                      self.experiment_dictonaries,
-                                                      self.list_of_parsed_yamls,
-                                                      self.master_equation_reactions)
+        master_equation_six_param_fit_instance = mespf.Master_Equation_Six_Parameter_Fit()
+        self.master_equation_six_param_fit_instance = master_equation_six_param_fit_instance
         
-        self.reactions_mapped_to_chebyshev_parameters = mapped_to_alpha_full_simulation
-        self.nested_list_for_MP_mapping = nested_list
-        MP_for_S_matrix = master_equation_instance.map_to_S(self.nested_list_for_MP_mapping,
-                                          self.sensitivity_dict,
-                                          self.master_equation_reactions)
+        MP_for_S_matrix = master_equation_six_param_fit_instance.master_equation_handling(self.experiment_dictonaries,
+                                                                                          self.list_of_parsed_yamls,
+                                                                                          self.molecular_parameter_sensitivities,
+                                                                                          self.master_equation_reactions)
+
         self.MP_for_S_matrix = MP_for_S_matrix
         return
         
     def building_matrices(self,loop_counter=0):
         matrix_builder_instance = ml.OptMatrix()
         self.matrix_builder_instance = matrix_builder_instance
-        S_matrix = matrix_builder_instance.load_S(self.experiment_dictonaries,self.list_of_parsed_yamls,dk=self.perturbment)
+        S_matrix = matrix_builder_instance.load_S(self.experiment_dictonaries,
+                                                  self.list_of_parsed_yamls,
+                                                  dk=self.perturbment,
+                                                  master_equation_reactions = self.master_equation_reactions,
+                                                  mapped_master_equation_sensitivites=self.MP_for_S_matrix,
+                                                  master_equation_flag = self.master_equation_flag)
         self.S_matrix = S_matrix
         
         
         if loop_counter == 0:
-            Y_matrix,Y_data_frame = matrix_builder_instance.load_Y(self.experiment_dictonaries,self.list_of_parsed_yamls,loop_counter=loop_counter)
+            Y_matrix,Y_data_frame = matrix_builder_instance.load_Y(self.experiment_dictonaries,
+                                                                   self.list_of_parsed_yamls,
+                                                                   loop_counter=loop_counter,
+                                                                   master_equation_flag = self.master_equation_flag,
+                                                                   master_equation_uncertainty_df = self.master_equation_uncertainty_df,
+                                                                   master_equation_reactions = self.master_equation_reactions)
         else:
-            Y_matrix,Y_data_frame = matrix_builder_instance.load_Y(self.experiment_dictonaries,self.list_of_parsed_yamls,loop_counter=loop_counter,X=self.X_to_subtract_from_Y)    
+            Y_matrix,Y_data_frame = matrix_builder_instance.load_Y(self.experiment_dictonaries,
+                                                                   self.list_of_parsed_yamls,
+                                                                   loop_counter=loop_counter,
+                                                                   X=self.X_to_subtract_from_Y,
+                                                                   master_equation_flag = self.master_equation_flag,
+                                                                   master_equation_uncertainty_df = self.master_equation_uncertainty_df,
+                                                                   master_equation_reactions = self.master_equation_reactions)    
             
         self.Y_matrix = Y_matrix
         self.Y_data_frame = Y_data_frame
         
-        z_matrix,z_data_frame,sigma = matrix_builder_instance.build_Z(self.experiment_dictonaries,self.list_of_parsed_yamls,
-                                                       loop_counter=loop_counter,
-                                                       reaction_uncertainty = self.data_directory +'/'+self.reaction_uncertainty_csv )
+        z_matrix,z_data_frame,sigma = matrix_builder_instance.build_Z(self.experiment_dictonaries,
+                                                                      self.list_of_parsed_yamls,
+                                                                       loop_counter=loop_counter,
+                                                                       reaction_uncertainty = self.data_directory +'/'+self.reaction_uncertainty_csv,
+                                                                       master_equation_uncertainty_df=self.master_equation_uncertainty_df,
+                                                                       master_equation_flag = self.master_equation_flag,
+                                                                       master_equation_reaction_list = self.master_equation_reactions)
         self.z_matrix = z_matrix
         self.z_data_frame = z_data_frame
         self.sigma = sigma
         return
     
-    def adding_k_target_values(self):
-        target_value_instance = ml.Adding_Target_Values(self.S_matrix,self.Y_matrix,self.z_matrix,self.sigma,self.Y_data_frame,self.z_data_frame)
-        k_target_values_for_s = target_value_instance.target_values_for_S(self.data_directory +'/'+ self.k_target_values_csv,
-                                                                          self.experiment_dictonaries,
-                                                                          master_equation_reaction_list = self.master_equation_reactions, 
-                                                                          master_equation_sensitivites = self.sensitivity_dict)
+    
+    #test up to here first 
+    
+    def defining_six_parameter_fit_dictonary(self):
         
-        k_targets_for_y,Y_data_frame = target_value_instance.target_values_Y(self.data_directory +'/'+ self.k_target_values_csv ,self.experiment_dictonaries)
-        k_targets_for_z,sigma,z_data_frame = target_value_instance.target_values_for_Z(self.data_directory +'/'+ self.k_target_values_csv)
-        S_matrix,Y_matrix,z_matrix,sigma = target_value_instance.appending_target_values(k_targets_for_z,k_targets_for_y,k_target_values_for_s,sigma)
+        
+        return 
+    def adding_k_target_values(self,loop_counter=0):
+        
+        ### add dataframe  start hete  
+        k_target_values_for_z,sigma_target_values,z_data_frame = self.master_equation_six_param_fit_instance.target_values_for_Z_six_paramter_fit(self.data_directory+'/'+ self.k_target_values_csv,
+                                                                                                                            self.z_data_frame)
+        if loop_counter == 0:
+            k_target_values_for_Y,Y_data_frame = self.master_equation_six_param_fit_instance.target_values_Y_six_parameter_fit(self.data_directory+'/'+ self.k_target_values_csv,
+                                                                                                                self.experiment_dictonaries,
+                                                                                                                self.Y_data_frame,
+                                                                                                                master_equation_reaction_list=self.master_equation_reactions,
+                                                                                                                updated_six_paramter_fits_dict=self.six_paramter_fit_nominal_parameters_dict)
+        else:
+            k_target_values_for_Y,Y_data_frame = self.master_equation_six_param_fit_instance.target_values_Y_six_parameter_fit(self.data_directory+'/'+ self.k_target_values_csv,
+                                                                                                                self.experiment_dictonaries,
+                                                                                                                self.Y_data_frame,
+                                                                                                                master_equation_reaction_list=self.master_equation_reactions,
+                                                                                                                updated_six_paramter_fits_dict=self.updated_six_parameter_fits_dict)        
+        
+
+        
+        
+        k_target_values_for_S = self.master_equation_six_param_fit_instance.target_values_for_S_six_parameter_fit(self.data_directory+'/'+ self.k_target_values_csv,
+                                                                                                                  self.experiment_dictonaries,
+                                                                                                                  self.S_matrix,
+                                                                                                                  master_equation_reaction_list=self.master_equation_reactions,
+                                                                                                                  six_parameter_fit_sensitivity_dict=self.six_parameter_fit_sensitivities)
+        
+
+        S_matrix,Y_matrix,z_matrix,sigma = self.master_equation_six_param_fit_instance.appending_target_values(k_target_values_for_z,
+                                                                                                               k_target_values_for_Y,
+                                                                                                               k_target_values_for_S,
+                                                                                                               sigma_target_values,
+                                                                                                               self.S_matrix,
+                                                                                                               self.Y_matrix,
+                                                                                                               self.z_matrix,
+                                                                                                               self.sigma)
+        
+        
+        
         self.S_matrix = S_matrix
         self.Y_matrix = Y_matrix
         self.z_matrix = z_matrix
         self.sigma = sigma
         self.Y_data_frame = Y_data_frame
         self.z_data_frame = z_data_frame
-        self.k_target_values_for_s = k_target_values_for_s
+        self.k_target_values_for_s = k_target_values_for_S
         return
     
     def matrix_math(self,loop_counter = 0):
@@ -229,7 +290,10 @@ class MSI_shocktube_optimization(object):
             deltaXAsNsEas,physical_observables,absorbance_coef_update_dict, X_to_subtract_from_Y,delta_x_molecular_params_by_reaction_dict = self.matrix_builder_instance.breakup_X(self.X,
                                                                                                                                           self.experiment_dictonaries,
                                                                                                                                           self.experiment_dict_uncertainty_original,
-                                                                                                                                            loop_counter=loop_counter)
+                                                                                                                                            loop_counter=loop_counter,
+                                                                                                                                            master_equation_flag = self.master_equation_flag,
+                                                                                                                                            master_equation_uncertainty_df=self.master_equation_uncertainty_df,
+                                                                                                                                            master_equation_reactions = self.master_equation_reactions)
             self.delta_x_molecular_params_by_reaction_dict = delta_x_molecular_params_by_reaction_dict
         else:
             deltaXAsNsEas,physical_observables,absorbance_coef_update_dict, X_to_subtract_from_Y = self.matrix_builder_instance.breakup_X(self.X,
@@ -260,6 +324,9 @@ class MSI_shocktube_optimization(object):
             
             original_covarience = copy.deepcopy(self.covarience)
             self.original_covarience = original_covarience
+            
+            six_paramter_fit_nominal_parameters_dict = copy.deepcopy(self.six_paramter_fit_nominal_parameters_dict)
+            self.six_paramter_fit_nominal_parameters_dict = six_paramter_fit_nominal_parameters_dict
             
             #original_experiment_dictonaries  = copy.deepcopy(self.experiment_dictonaries[0]['ksens'])
 
@@ -307,18 +374,27 @@ class MSI_shocktube_optimization(object):
         
        
         
+        if self.master_equation_flag == True:
+            updated_six_parameter_fits_dict = self.master_equation_six_param_fit_instance.update_six_paramter_fits_dict(self.six_parameter_fit_sensitivities,
+                                                                                      self.delta_x_molecular_params_by_reaction_dict, 
+                                                                                      self.master_equation_reactions,
+                                                                                      self.six_paramter_fit_nominal_parameters_dict)
         
-        if self.master_equation_flag == True and loop_counter/1 == loop_counter:
-            master_equation_surrogate_model_update_dictonary = self.master_equation_instance.surrogate_model_molecular_parameters_chevy(self.sensitivity_dict,
-                                                                                     self.master_equation_reactions,
-                                                                                     self.delta_x_molecular_params_by_reaction_dict)
-            self.master_equation_surrogate_model_update_dictonary = master_equation_surrogate_model_update_dictonary
+            self.updated_six_parameter_fits_dict = updated_six_parameter_fits_dict
             
+            
+        if self.master_equation_flag == True:
+            master_equation_surrogate_model_update_dictonary = self.master_equation_six_param_fit_instance.surrogate_model_molecular_parameters(self.molecular_parameter_sensitivities,
+                                                                                                                                                self.master_equation_reactions,
+                                                                                                                                                self.delta_x_molecular_params_by_reaction_dict,
+                                                                                                                                                self.experiment_dictonaries)
+                                                                                                                                                
+            
+            
+
         #this may not be the best way to do this 
-        if self.master_equation_flag == True and loop_counter/1 != loop_counter:
-            master_equation_surrogate_model_update_dictonary = self.master_equation_instance.surrogate_model_molecular_parameters_chevy(self.sensitivity_dict,
-                                                                                     self.master_equation_reactions,
-                                                                                     self.delta_x_molecular_params_by_reaction_dict)
+
+            
             self.master_equation_surrogate_model_update_dictonary = master_equation_surrogate_model_update_dictonary
             
         if self.master_equation_flag == False:
@@ -370,7 +446,7 @@ class MSI_shocktube_optimization(object):
             #need to add functionality to update with the surgate model or drop out of loop
         self.building_matrices(loop_counter=loop_counter)
         if bool(self.k_target_values_csv):
-            self.adding_k_target_values()
+            self.adding_k_target_values(loop_counter=loop_counter)
             
         self.matrix_math(loop_counter=loop_counter)
         if loop_counter==0:
@@ -378,7 +454,7 @@ class MSI_shocktube_optimization(object):
             
 
         self.updating_files(loop_counter=loop_counter)
-        
+
         
         
     def multiple_shock_tube_runs(self,loops):

@@ -142,26 +142,29 @@ class OptMatrix(object):
                                 coefficent = parsed_yaml_list[i]['coupledCoefficients'][xx][yy][zz]    
                                 if coefficent!=0:
                                     perturbed_coefficent=coefficent+coefficent*dk
-
-                                    if zz==1 and ff =='B':
-                                        perturbed_coefficent = coefficent + .01
+                                    if zz==1 and ff =='F':
+                                        #change back tab
+                                        perturbed_coefficent = coefficent + .01*coefficent
                                     temp[zz] = perturbed_coefficent
 
                                     key = tuple(temp)
+
                                     indx = list_to_keep_order_of_coef.index(key)
+                                    
                                     index_list.append(indx)
                                     
                                     exp_index_sigma = temps.count(key)
                                     temps.append(key)
 
                                     array = pert_coef[key][exp_index_sigma][wl]
+                                    
                                     array = array.reshape((array.shape[0],1))
                                     perturbed_coefficeints.append(array)
 
                                 
                     
                     
-                    missing_sigmas = []           
+                    missing_sigmas = []  
                     for indp_sigma in range(len(list_to_keep_order_of_coef)):
                         if indp_sigma not in index_list:
                             missing_sigmas.append(indp_sigma)
@@ -210,7 +213,9 @@ class OptMatrix(object):
             N_k = N_k[:,:-number_of_master_equation_reactions]
             Ea_k = Ea_k[:,:-number_of_master_equation_reactions]
             
+           
             S_ksens = np.hstack((A_k,N_k,Ea_k))
+            #print(np.shape(S_ksens),'this is the shape of the S matrix before MP')
             S_ksens = np.hstack((S_ksens,mapped_master_equation_sensitivites))
             
 
@@ -320,7 +325,7 @@ class OptMatrix(object):
                 if observable == None:
                     pass
                 else:
-
+                    #if you need to add something with concentration add it here 
                     if 'ppm' in exp_dic['experimental_data'][counter].columns.tolist()[1]:
                         natural_log_diff = natural_log_difference(exp_dic['experimental_data'][counter][observable+'_ppm'].values,
                                                                   (exp_dic['simulation'].timeHistoryInterpToExperiment[observable].dropna().values)*1e6)
@@ -357,6 +362,7 @@ class OptMatrix(object):
                     Y.append(natural_log_diff)
         
         Y = np.vstack((Y))
+       
         #YdataFrame = pd.DataFrame({'value': YdataFrame,'ln_difference': Y})
         
         reactions_in_cti_file = exp_dict_list[0]['simulation'].processor.solution.reaction_equations()
@@ -375,7 +381,7 @@ class OptMatrix(object):
             for col in master_equation_uncertainty_df:
                 number_of_molecular_parameters_list.append(len(master_equation_uncertainty_df[col].dropna().values))
                 
-            number_of_molecular_parameters = sum(number_of_molecular_parameters_list)    
+            number_of_molecular_parameters = sum(number_of_molecular_parameters_list) 
             #print('we do not have master equation installed yet')
             #subtract out the necessary target values and add the other ones in 
         else:
@@ -400,7 +406,7 @@ class OptMatrix(object):
             
         if master_equation_flag == True:
             for i,value in enumerate(number_of_molecular_parameters_list):
-                for j,parameter in enumerate(value):
+                for j,parameter in enumerate(range(value)):
                     Y_data_Frame.append('R'+'_'+str(i)+'P'+'_'+str(j))
                
             
@@ -412,7 +418,7 @@ class OptMatrix(object):
                 Y = np.vstack((Y,molecular_paramter_zeros))
                 
         
-                
+             
         else:
             #print('we do not have loop counter installed yet')
             #need to check what we would need to do here 
@@ -427,9 +433,12 @@ class OptMatrix(object):
             #clean this part of the code up here
             #tab
             if master_equation_flag == True:
-                Y = np.vstack(Y,-X['molecular_parameters'])
+                temp_array = np.array(X['molecular_parameters'])*-1
+                temp_array = temp_array.reshape((temp_array.shape[0],
+                                                      1))
+                Y = np.vstack((Y,temp_array))
             
-            
+           
     #Assembling the phsycial portion of the Y matrix 
         if exp_dict_list[0]['simulation'].physicalSens ==1:
             if loop_counter == 0:
@@ -465,7 +474,7 @@ class OptMatrix(object):
                                                       1))
                 
                 Y = np.vstack((Y,temp_array))
-                
+            
         #Assembling the portion of the Y matrix for the absorbance coefficient sensitiviteis 
         pert_coef = {} #build a dict matching pert_coef to their experiment and wavelength.             
                #length of the dict gives padding information
@@ -479,14 +488,20 @@ class OptMatrix(object):
                 else:
                     pert_coef[x[0][2]].append(x[1])
                     
-        num_ind_pert_coef = len(pert_coef)  
+        num_ind_pert_coef = len(pert_coef)         
         temp_zeros = np.zeros((num_ind_pert_coef,1))
         if loop_counter == 0:
             Y = np.vstack((Y,temp_zeros))
         else:  
             if 'absorbance_coefficent_observables' in X.keys():
-                temp_array = np.array(X['absorbance_coefficent_observables'])
-                temp_array = temp_array[temp_array!=0]
+                
+                #temp_array = np.array(X['absorbance_coefficent_observables'])
+                temp_array = X['absorbance_coefficent_observables'] 
+                temp_array = [a for a in temp_array if a != 'null']
+               
+                #temp_array = temp_array[temp_array!=0]
+                #temp_array = temp_array[temp_array!=0]
+                temp_array = np.array(temp_array)
                 temp_array = np.array(temp_array)*-1
                 
                 temp_array = temp_array.reshape((temp_array.shape[0],
@@ -497,7 +512,7 @@ class OptMatrix(object):
         for x in range(num_ind_pert_coef):
             Y_data_Frame.append('Sigma'+'_'+str(x))
 
-       
+ 
         Y_data_Frame = pd.DataFrame({'value': Y_data_Frame,'ln_difference': Y.reshape((Y.shape[0],))})  
         self.Y_matrix = Y
         return Y, Y_data_Frame
@@ -509,6 +524,7 @@ class OptMatrix(object):
                 loop_counter:int = 0,
                 reaction_uncertainty=None,
                 master_equation_uncertainty_df=None,
+                master_equation_reaction_list=[],
                 master_equation_flag = False):
         Z = []
         Z_data_Frame = [] 
@@ -559,10 +575,11 @@ class OptMatrix(object):
                     total_uncertainty = np.divide(total_uncertainty,(1/length_of_data**.5) )
                 
                 else:
-                    total_uncertainty = np.log(1 + np.sqrt(np.square(relative_uncertainty_array)))
+                    #total_uncertainty = np.log(1 + np.sqrt(np.square(relative_uncertainty_array)))
+                    total_uncertainty = relative_uncertainty_array
                     #weighting factor
+                    
                     un_weighted_uncertainty = copy.deepcopy(total_uncertainty)
-                   
                     total_uncertainty = np.divide(total_uncertainty,(1/length_of_data**.5) )
 
             #make this return a tuple 
@@ -632,14 +649,22 @@ class OptMatrix(object):
         #because we wrote a function to make the excel sheet which will arrange things in the correct order 
         #We also need to decide if we want to put this in as ln values or not in the spreadsheet 
         
-        
-        
         reaction_uncertainty = pd.read_csv(reaction_uncertainty)
+        if master_equation_flag ==True:
+            for reaction in master_equation_reaction_list:
+                index = reaction_uncertainty.loc[reaction_uncertainty['Reaction'] == reaction].index[0]
+                reaction_uncertainty = reaction_uncertainty.drop([index])
+                
+                
+                
+
         #tab fix this correctly
-        uncertainty_As = reaction_uncertainty['Uncertainty A (unit)'].values + 1
+        uncertainty_As = reaction_uncertainty['Uncertainty A (unit)'].values 
         uncertainty_As = uncertainty_As.reshape((uncertainty_As.shape[0],
                                                   1))
-        uncertainty_As = np.log(uncertainty_As)
+        
+        
+        #uncertainty_As = np.log(uncertainty_As)
         Z = np.vstack((Z,uncertainty_As))
         sigma = np.vstack((sigma,uncertainty_As))
         for variable in range(uncertainty_As.shape[0]):
@@ -650,6 +675,7 @@ class OptMatrix(object):
         uncertainty_ns = reaction_uncertainty['Uncertainty N (unit)'].values
         uncertainty_ns = uncertainty_ns.reshape((uncertainty_ns.shape[0],
                                                   1))
+        #print(uncertainty_ns)
         Z = np.vstack((Z,uncertainty_ns))
         sigma = np.vstack((sigma,uncertainty_ns))
         for variable in range(uncertainty_ns.shape[0]):
@@ -672,12 +698,15 @@ class OptMatrix(object):
         if master_equation_flag ==True:
             master_equation_uncertainty = []
             for col in master_equation_uncertainty_df:
-                master_equation_uncertainty.append(master_equation_uncertainty_df[col].dropna().values)
+                master_equation_uncertainty.append(list(master_equation_uncertainty_df[col].dropna().values))
+                
                 
             for i,reaction in enumerate(master_equation_uncertainty):
                 for j,uncer in enumerate(reaction):
                     Z_data_Frame.append('R'+'_'+str(i)+'_'+'P'+str(j))
-            ##check this     
+            ##check this 
+            
+            master_equation_uncertainty = [item for sublist in master_equation_uncertainty for item in sublist]
             master_equation_uncertainty = np.array(master_equation_uncertainty)
             master_equation_uncertainty = master_equation_uncertainty.reshape((master_equation_uncertainty.shape[0],
                                                   1))
@@ -810,7 +839,7 @@ class OptMatrix(object):
                 number_of_molecular_parameters_list.append(len(master_equation_uncertainty_df[col].dropna().values))
                 
             sum_of_moleular_paramters = sum(number_of_molecular_parameters_list)
-            value2 = len(sum_of_moleular_paramters)     
+            value2 = sum_of_moleular_paramters     
             deltaXmolecularParams = X_new[value1:(value1+value2)]
             
             X_to_subtract_from_Y['molecular_parameters'] = deltaXmolecularParams
@@ -823,7 +852,10 @@ class OptMatrix(object):
                 start_mp = stop_mp
                 reaction_numbers.append('R_'+str(r))
            ######################################################################################################################## 
-            delta_x_molecular_params_by_reaction_dict = dict(zip(reaction_numbers,molecular_paramters_by_reaction))
+            #delta_x_molecular_params_by_reaction_dict = dict(zip(reaction_numbers,molecular_paramters_by_reaction))
+
+            #return this instead 
+            delta_x_molecular_params_by_reaction_dict = dict(zip(master_equation_reactions,molecular_paramters_by_reaction))
             ######################################################################################################################## 
             #start here tomorrow
             #return this ??
@@ -862,7 +894,7 @@ class OptMatrix(object):
         X_to_subtract_from_Y['physical_observables'] = physical_observables_for_Y
         
         
-        
+        test_abs = []
         absorbance_coefficients_for_Y = []
         coef_dict = {}  
         coef_dict_list = []
@@ -886,19 +918,26 @@ class OptMatrix(object):
         stop_abs = 1         
         for i,cof in enumerate(coef_dict_list):
             temp=[]
+            temp2=[]
          #   counter=1
             for value in cof:
                 if value==0:
                     temp.append([0])
+                    temp2.append(['null'])
                 else:
                     temp.append(X_new[(value1+value2+new_value+start_abs):(value1+value2+new_value+stop_abs)])
+                    temp2.append(X_new[(value1+value2+new_value+start_abs):(value1+value2+new_value+stop_abs)])
                     start_abs = stop_abs
                     stop_abs +=1
                     
-            temp = [item for sublist in temp for item in sublist]        
+            temp = [item for sublist in temp for item in sublist]     
+            temp2 = [item for sublist in temp2 for item in sublist]     
             absorbance_coef_update_dict[cof] = temp
-            absorbance_coefficients_for_Y.append(temp)
-        
+            absorbance_coefficients_for_Y.append(temp2)
+            test_abs.append(temp2)
+            
+            
+
         # return everything in a dictonary??   
         absorbance_coefficients_for_Y = [item for sublist in absorbance_coefficients_for_Y for item in sublist] 
         X_to_subtract_from_Y['absorbance_coefficent_observables'] = absorbance_coefficients_for_Y
@@ -960,7 +999,7 @@ class OptMatrix(object):
         X = XlastItteration + delta_X
         self.X = X
 
-        return X,c,s_matrix,y_matrix,delta_X,self.z_matrix
+        return X,c,s_matrix,y_matrix,delta_X,z_matrix
             
     
     
@@ -988,6 +1027,7 @@ class Adding_Target_Values(meq.Master_Equation):
         target_temp = target_value_csv['temperature']
         target_press = target_value_csv['pressure']
         target_k = target_value_csv['k']
+        bath_gas = target_value_csv['M']
         reactions_in_cti_file = exp_dict_list[0]['simulation'].processor.solution.reaction_equations()
         gas = ct.Solution(exp_dict_list[0]['simulation'].processor.cti_path)
         diff_in_ks_for_Y = []
@@ -997,11 +1037,17 @@ class Adding_Target_Values(meq.Master_Equation):
                 pressure = 1e-9
             else:
                 pressure = target_press[i]
-            gas.TPX = target_temp[i],pressure*101325,{'Ar':.99}
+            if bath_gas[i] !=0:
+                gas.TPX = target_temp[i],pressure*101325,{'H2O':.013,'O2':.0099,'H':.0000007,'Ar':.9770993}
+
+            else:
+                gas.TPX = target_temp[i],pressure*101325,{'Ar':.99}
             reaction_number_in_cti = reactions_in_cti_file.index(reaction)
             k = gas.forward_rate_constants[reaction_number_in_cti]
+            
                 #check and make sure we are subtracting in the correct order 
             difference = np.log(target_k[i]) - np.log(k) 
+
             diff_in_ks_for_Y.append(difference)
             Y_df_list.append(reaction)
             Y_values.append(difference)
