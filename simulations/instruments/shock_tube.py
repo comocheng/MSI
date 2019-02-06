@@ -127,12 +127,14 @@ class shockTube(sim.Simulation):
     def sensitivity_adjustment(self,temp_del:float=0.0,
                                pres_del:float=0.0,
                                spec_pair:(str,float)=('',0.0)):
+        
+        #this is where we would make the dk fix
         if temp_del != 0.0:
-            self.dk.append(self.temperature*temp_del)
+            self.dk.append(temp_del)
         if pres_del != 0.0:       
-            self.dk.append(self.pressure*pres_del) 
+            self.dk.append(pres_del) 
         if spec_pair[1] != 0.0:
-            self.dk.append(spec_pair[1]*self.conditions[spec_pair[0]])
+            self.dk.append(spec_pair[1])
         
         
         kin_temp = self.kineticSens
@@ -316,7 +318,7 @@ class shockTube(sim.Simulation):
             for x,column in enumerate(sheetA.T):
                 N[:,x,i]= np.multiply(column,np.log(self.timeHistories[0]['temperature'])) if time_history is None else np.multiply(column,np.log(time_history['temperature']))
                 #not sure if this mapping is correct, check with burke and also update absorption mapping
-                #to_mult_ea = np.divide(-1,np.multiply(ct.gas_constant,self.timeHistories[0]['temperature'])) if time_history is None else np.divide(-1,np.multiply(ct.gas_constant,time_history['temperature']))
+                #to_mult_ea = np.divide(-1,np.multiply(1/ct.gas_constant,self.timeHistories[0]['temperature'])) if time_history is None else np.divide(-1,np.multiply(ct.gas_constant,time_history['temperature']))
                 to_mult_ea = np.divide(-1,np.multiply(1,self.timeHistories[0]['temperature'])) if time_history is None else np.divide(-1,np.multiply(1,time_history['temperature']))
                 Ea[:,x,i]= np.multiply(column,to_mult_ea)
                 
@@ -443,6 +445,8 @@ class shockTube(sim.Simulation):
             newValues.columns = thingToFindSensitivtyOf
             newValues = newValues.applymap(np.log)
             originalValues = originalValues.applymap(np.log)
+            #tab
+            
             sensitivity = (newValues.subtract(originalValues)/dk)
             return sensitivity
         else:

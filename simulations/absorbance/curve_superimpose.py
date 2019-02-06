@@ -30,7 +30,7 @@ class Absorb:
                 orig_cc = species_and_coupled_coefficients[species][i]
                 if orig_cc[0] == 0 and orig_cc[1] == 0:
                     pass
-                
+               # print(orig_cc[0],'this is cc0')
                 if orig_cc[0] != 0:
                     cc = (orig_cc[0]+orig_cc[0]*del_param,orig_cc[1])
                     species_and_coupled_coefficients[species][i] = cc
@@ -47,28 +47,35 @@ class Absorb:
                         self.saved_perturb_data.append([(species,species_and_wavelengths[species][index],cc),
                                                         self.ln_abs(changed_data,summed_data,dk=orig_cc[0]*del_param)])
                         #print(changed_data)
-#somewehre around her e
+                # start checking data somewhere around here
                 if orig_cc[1] != 0:
-                    if species_and_functional_form[species][i] != 'B':
+                    #print(orig_cc[1],'this is cc1')
+                    if species_and_functional_form[species][i] != 'F':
+                        #print('in here')
                         cc = (orig_cc[0],orig_cc[1]+orig_cc[1]*del_param)
 
                         species_and_coupled_coefficients[species][i] = cc
-
+                        #print(cc)
                         changed_data = self.get_abs_data(simulation,
                                                          absorb,
                                                          pathlength,
                                                          kinetic_sens = 0,
                                                          pert_spec_coef = species_and_coupled_coefficients)
+                        
+                        
                         if summed_data is None:
                             
                             self.saved_perturb_data.append([(species,species_and_wavelengths[species][index],cc),
                                                             changed_data])
                         else:  
-                                                         
+                            #print(changed_data,summed_data,orig_cc[1]*del_param)       
+                            #test = self.ln_abs(changed_data,summed_data,dk=orig_cc[1]*del_param)
+                            #print(test)
                             self.saved_perturb_data.append([(species,species_and_wavelengths[species][index],cc),
                                                             self.ln_abs(changed_data,summed_data,dk=orig_cc[1]*del_param)])
                     else:
-                        cc = (orig_cc[0],orig_cc[1] + .01)
+                        #cc = (orig_cc[0],orig_cc[1] + .01)
+                        cc = (orig_cc[0],orig_cc[1]+orig_cc[1]*.01)
                         changed_data = self.get_abs_data(simulation,
                                                          absorb,
                                                          pathlength,
@@ -133,11 +140,13 @@ class Absorb:
             temp.clear()
             for i in range(0,len(orig_data[key])):
                 if sim is not None and index is not None: 
-                    temp.append((np.log(changed_data[key][i]) - np.log(orig_data[key][i]))/sim.dk[index]) 
-                    
+                    temp.append((np.log(changed_data[key][i]) - np.log(orig_data[key][i]))/.01) 
+                    #sim.dk[index]
                 else:
-                    temp.append((np.log(changed_data[key][i]) - np.log(orig_data[key][i]))/dk) 
+                    temp.append((np.log(changed_data[key][i]) - np.log(orig_data[key][i]))/.01) 
+                    #dk
             ln_dict[key] = temp
+        #print(ln_dict)
         return ln_dict
     
     def map_ksens(self,sheet,time_history=None):
@@ -146,7 +155,7 @@ class Absorb:
         Ea = np.zeros(A.shape)
         for x,column in enumerate(A.T):
             N[:,x]= np.multiply(column,np.log(self.timeHistories[0]['temperature'])) if time_history is None else np.multiply(column,np.log(time_history['temperature']))
-            #to_mult_ea = np.divide(-1,np.multiply(ct.gas_constant,self.timeHistories[0]['temperature'])) if time_history is None else np.divide(-1,np.multiply(ct.gas_constant,time_history['temperature']))
+            #to_mult_ea = np.divide(-1,np.multiply(1/ct.gas_constant,self.timeHistories[0]['temperature'])) if time_history is None else np.divide(-1,np.multiply(ct.gas_constant,time_history['temperature']))
             to_mult_ea = np.divide(-1,np.multiply(1,self.timeHistories[0]['temperature'])) if time_history is None else np.divide(-1,np.multiply(1,time_history['temperature']))
             Ea[:,x]= np.multiply(column,to_mult_ea)
 
@@ -341,6 +350,7 @@ class Absorb:
                       summed_absorption):
         species_and_sensitivities = {}
         for x,i in enumerate(simulation.observables):
+            #print(x,i,'these are the observables')
             slice_2d = simulation.kineticSensitivities[:,:,x]
             species_and_sensitivities[i]=slice_2d
         temperature_matrix = simulation.timeHistories[0]['temperature'].values
@@ -352,16 +362,22 @@ class Absorb:
                 continue
             #do epsilon and con calc, then mult
             wavelengths = species_and_wavelengths[species]
-            
+            #print(wavelengths)
             for j in range(0,len(wavelengths)):
                 wavelength = species_and_wavelengths[species][j] 
                 if wavelength not in ind_wl_derivs.keys():
+
                     net_sum = np.zeros(shape=(simulation.kineticSensitivities.shape[0:2])) #only need 2d info, since sum over observables
                 else:
                     net_sum = ind_wl_derivs[wavelength]
+
                 index = species_and_wavelengths[species].index(wavelength)
+                #print(index)
+                #print(species_and_wavelengths[species])
                 cc = species_and_coupled_coefficients[species][index]
+               # print(cc)
                 ff = species_and_functional_form[species][index]
+                #print(ff)
                 if ff == 'A':
                     epsilon = ((cc[1]*temperature_matrix) + cc[0])
                 if ff == 'B':
@@ -371,12 +387,15 @@ class Absorb:
                     if type(epsilon)==float or type(epsilon)==int:
                         epsilon = np.ones(shape=temperature_matrix.shape)
                         epsilon *= cc[0]
-                if wavelength == 215: #does this really need to be here, takes care of specific paper case?
-                   epsilon *= 1
-                
+                #if wavelength == 215: #does this really need to be here, takes care of specific paper case?
+                   #epsilon *= 1
+
                 concentration = np.true_divide(1,temperature_matrix.flatten())*pressure_matrix.flatten()
                 concentration *= (1/(8.314e6))*simulation.timeHistories[0][species].values.flatten()
+                #print(species)
+                #mole_fraction = simulation.timeHistories[0][species].values.flatten()
                 temp = np.multiply(species_and_sensitivities[species],concentration.reshape((np.shape(concentration)[0],1)))
+                #temp = np.multiply(species_and_sensitivities[species],1)
                 net_sum += np.multiply(temp,epsilon.reshape((np.shape(epsilon)[0],1)))
                 
                 ind_wl_derivs[wavelength]=net_sum
@@ -384,7 +403,7 @@ class Absorb:
         for single_wl in ind_wl_derivs.keys():
             flat_list = np.array(list(summed_absorption[single_wl]))
             for i in range(0,len(flat_list)):
-                flat_list[i] = 1/flat_list[i]
+                flat_list[i] = (1/flat_list[i])*pathlength
             for column in ind_wl_derivs[single_wl].T:
                 column*=flat_list.flatten()
         
