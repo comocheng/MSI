@@ -4,20 +4,31 @@ sys.path.append('.') #get rid of this at some point with central test script or 
 import MSI.simulations.instruments.shock_tube as st
 import MSI.cti_core.cti_processor as pr
 import cantera as ct
+import matplotlib.pyplot as plt
 
-test_p = pr.Processor('MSI/data/test_data/FFCM1_custom_original_updated.cti')
-test_tube = st.shockTube(pressure=1.74,
-                         temperature=1880,
+test_p = pr.Processor('MSI/data/test_data/hong_reproduction_of_data.cti')
+test_tube = st.shockTube(pressure=1.653,
+                         temperature=1283,
                          observables=['OH','H2O'],
-                         kineticSens=1,
+                         kineticSens=0,
                          physicalSens=0,
-                         conditions={'H2O':0.012438871,'O2': 0.009715602,'H':.0000007,'Ar':0.9770993},
+                         conditions={'H2O2':0.003094,'H2O':0.001113,'O2':0.000556,'Ar':0.995237},
                          initialTime=0,
-                         finalTime=0.1,
+                         finalTime=0.001,
                          thermalBoundary='Adiabatic',
                          mechanicalBoundary='constant pressure',
-                         processor=test_p)
+                         processor=test_p,
+                         save_timeHistories=1,
+                         save_physSensHistories=1)
 test_tube.run()
 test_tube.printVars()
-print(test_tube.timeHistory)
-print(test_tube.kineticSensitivities)
+time_History = test_tube.timeHistory
+
+
+plt.plot(time_History['time']*1e3,time_History['OH']*1e6)
+time_OH = time_History['time']
+OH_ppm = time_History['OH']*1e6
+plt.figure()
+plt.plot(time_History['time']*1e3,time_History['H2O']*1e6)
+time_H2O = time_History['time']
+H2O_ppm = time_History['H2O']*1e6

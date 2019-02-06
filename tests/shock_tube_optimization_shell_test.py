@@ -29,18 +29,27 @@ import MSI.utilities.plotting_script as plotter
 #                                                    ['Hong_5.yaml','Hong_5_abs.yaml']],                 
 #                                                   'uncertainty_test.csv','FFCM1_custom_target_value_test.csv' )
  #burke_target_value_test.csv                
-files_to_include = [['Hong_1.yaml']]                                  
-numer_of_iterations = 3
+files_to_include = [['Hong_1.yaml'],
+                    ['Hong_2.yaml'],
+                    ['Hong_3.yaml'],
+                    ['Hong_4.yaml','Hong_4_abs.yaml'],
+                    ['Troe_4.yaml','Troe_4_abs.yaml'],
+                    ['Troe_5.yaml','Troe_5_abs.yaml'],
+                    ['Troe_6.yaml','Troe_6_abs.yaml'],
+                    ['Troe_7.yaml','Troe_7_abs.yaml'],
+                    ['Troe_8.yaml','Troe_8_abs.yaml']]                                                                            
+numer_of_iterations = 1
 cti_file = 'chem_original_burke.cti'
 working_directory = 'MSI/data/test_data'
 reaction_uncertainty_csv = 'burke_uncertainty_test.csv'
 
-rate_constant_target_value_data = 'burke_target_value_single_reactions.csv'
+#rate_constant_target_value_data = 'burke_target_value_single_reactions.csv'
+rate_constant_target_value_data = 'burke_target_value_test.csv'
 #this would be an empty string '' if you do not want to include it 
 run_with_k_target_values = 'On'
 #this could be 'On'
 
-rate_constant_target_value_data_for_plotting = 'burke_target_value_single_reactions.csv'
+rate_constant_target_value_data_for_plotting = 'burke_target_value_test.csv'
 
 
 
@@ -57,6 +66,11 @@ S_matrix_original = MSI_st_instance_one.S_matrix
 exp_dict_list_original = MSI_st_instance_one.experiment_dictonaries
 original_covariance = MSI_st_instance_one.covarience
 X_one_itteration = MSI_st_instance_one.X
+MSI_st_instance_one.deltaXAsNsEas
+    
+
+
+
 #need to fix this and return _s_matrix and y_matrix
 
 
@@ -68,12 +82,12 @@ MSI_st_instance_two = stMSI.MSI_shocktube_optimization(cti_file,
                                                    'MSI/data/test_data',
                                                    files_to_include,                 
                                                    reaction_uncertainty_csv,rate_constant_target_value_data )
-
-
-
-
-
-
+#
+#
+#
+#
+#
+#
 X_list = MSI_st_instance_two.multiple_shock_tube_runs(numer_of_iterations)
 
 
@@ -105,7 +119,7 @@ target_value_csv = MSI_st_instance_two.data_directory +'/'+ MSI_st_instance_two.
 if run_with_k_target_values == 'On' or run_with_k_target_values == 'on':
     k_target_value_S_matrix = MSI_st_instance_two.k_target_values_for_s
 else:
-    k_target_value_S_matrix == None
+    k_target_value_S_matrix = None
 
 
 ##########################################################################################################################
@@ -127,7 +141,7 @@ plotting_instance = plotter.Plotting(S_matrix,
                                      exp_dict_list_original,
                                      parsed_yaml_list,
                                      Ydf,
-                                     target_value_rate_constant_csv= MSI_st_instance_two.data_directory +'/'+'burke_target_value_single_reactions.csv' ,
+                                     target_value_rate_constant_csv= MSI_st_instance_two.data_directory +'/'+'burke_target_value_test.csv' ,
                                      k_target_value_S_matrix =k_target_value_S_matrix,
                                      k_target_values=run_with_k_target_values)
 
@@ -136,7 +150,8 @@ sigmas_optimized,test = plotting_instance.calculating_sigmas(S_matrix,covarience
 sigmas_original,test2 = plotting_instance.calculating_sigmas(S_matrix_original,original_covariance)
 plotting_instance.plotting_observables(sigmas_original = sigmas_original,sigmas_optimized= sigmas_optimized)
 diag = plotting_instance.getting_matrix_diag(covarience)
-plotting_instance.Y_matrix_plotter(Y_matrix,exp_dict_list_optimized,y,sigma)
+
+#plotting_instance.Y_matrix_plotter(Y_matrix,exp_dict_list_optimized,y,sigma)
 
 
 
