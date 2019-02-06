@@ -229,6 +229,7 @@ class Plotting(object):
         
         gas_optimized = ct.Solution(optimized_cti_file)
         gas_original = ct.Solution(original_cti_file)
+
         def unique_list(seq):
             checked = []
             for e in seq:
@@ -323,8 +324,10 @@ class Plotting(object):
             unique_reactions_original = unique_list(unique_reactions_original)
             
             sigma_list_for_target_ks_optimized = calculate_sigmas_for_rate_constants(self.k_target_value_S_matrix,k_target_value_csv,unique_reactions_optimized,gas_optimized,self.covarience)
+            self.sigma_list_for_target_ks_optimized = sigma_list_for_target_ks_optimized
             sigma_list_for_target_ks_original = calculate_sigmas_for_rate_constants(self.k_target_value_S_matrix,k_target_value_csv,unique_reactions_original,gas_original,self.original_covariance)
-          ######################  
+            self.sigma_list_for_target_ks_original = sigma_list_for_target_ks_original
+            ######################  
             target_value_temps_optimized,target_value_ks_optimized = sort_rate_constant_target_values(k_target_value_csv,unique_reactions_optimized,gas_optimized)
             target_value_temps_original,target_value_ks_original = sort_rate_constant_target_values(k_target_value_csv,unique_reactions_original,gas_original)
            ############################################# 
@@ -541,6 +544,7 @@ class Plotting(object):
         length = sum(flat_list)
         observables_list = self.Ydf['value'].tolist()[length:]
         short_sigma = list(self.sigma)[length:]
+        print(flat_list)
         if bool(self.target_value_rate_constant_csv) and self.k_target_values=='On':
            
            k_target_value_csv = pd.read_csv(self.target_value_rate_constant_csv) 
@@ -558,6 +562,7 @@ class Plotting(object):
         S_matrix_copy = copy.deepcopy(self.S_matrix)
         self.shorten_sigma()
         Sig = self.short_sigma
+        #Sig = self.sigma
         for pp  in range(np.shape(S_matrix_copy)[1]):
             S_matrix_copy[:,pp] *=Sig[pp]
 
@@ -655,7 +660,270 @@ class Plotting(object):
             
          
             
+    def plotting_rate_constants_six_paramter_fit(self,optimized_cti_file='',
+                                original_cti_file='',
+                                initial_temperature=250,
+                                final_temperature=2500,
+                                master_equation_reactions = [],
+                                six_parameter_fit_dict_optimized = {},
+                                six_parameter_fit_dict_nominal = {}):
+        
+        gas_optimized = ct.Solution(optimized_cti_file)
+        gas_original = ct.Solution(original_cti_file)
+        print(original_cti_file)
+        def unique_list(seq):
+            checked = []
+            for e in seq:
+                if e not in checked:
+                    checked.append(e)
+            return checked
+        def calculate_six_parameter_fit(reaction,dictonary,temperature):
+        #finish editing this 
+        #calc Ea,c,d,F seprately 
+            A = dictonary[reaction]['A']
+            n = dictonary[reaction]['n']
+            Ea_temp = dictonary[reaction]['Ea']/(1.987*temperature)
+            c_temp = dictonary[reaction]['c']/((1.987*temperature)**3)
+            d_temp = dictonary[reaction]['d']*(1.987*temperature)
+            f_temp = dictonary[reaction]['f']* ((1.987*temperature)**3)
+
+            k = A*(temperature**n)*np.exp(-Ea_temp-c_temp-d_temp-f_temp)
+            return k 
+        def sort_rate_constant_target_values(parsed_csv,unique_reactions,gas):
+            reaction_list_from_mechanism = gas.reaction_equations()
+            target_value_ks = [[] for reaction in range(len(unique_reactions))]
+            target_value_temps = [[] for reaction in range(len(unique_reactions))]
+            reaction_list_from_mechanism = gas.reaction_equations()
+            
+            for i,reaction in enumerate(parsed_csv['Reaction']):
+                idx = reaction_list_from_mechanism.index(reaction)
+                target_value_ks[unique_reactions.index(idx)].append(parsed_csv['k'][i])
+                target_value_temps[unique_reactions.index(idx)].append(parsed_csv['temperature'][i])
+                
+            return target_value_temps,target_value_ks
+        def rate_constant_over_temperature_range_from_cantera(reaction_number,
+                                                              gas,
+                                                              initial_temperature=250,
+                                                              final_temperature=2500,
+                                                              pressure=1,
+                                                              conditions = {'H2':2,'O2':1,'N2':4},
+                                                              dictonary={},
+                                                              master_equation_reactions=[]):
+            Temp = []
+            k = []
+            
+            
+            reaction_string = gas.reaction_equations()[reaction_number] 
+            for temperature in np.arange(initial_temperature,final_temperature,1):
+                
+                if reaction_string in master_equation_reactions:
+                    k.append(calculate_six_parameter_fit(reaction_string,dictonary,temperature))
+                    Temp.append(temperature)
+                #start editing here
+                else:
+                
+                    gas.TPX = temperature,pressure*101325,conditions
+                    Temp.append(temperature)
+                    k.append(gas.forward_rate_constants[reaction_number])
+            return Temp,k
+
+        def calculate_sigmas_for_rate_constants(k_target_value_S_matrix,k_target_values_parsed_csv,unique_reactions,gas,covarience):
+            #grab the last x rows of the matricies that we need 
+            #start here tomorrow 
+            
+            reaction_list_from_mechanism = gas.reaction_equations()
+            sigma_list_for_target_ks = [[] for reaction in range(len(unique_reactions))]
+            shape = k_target_value_S_matrix.shape
+            for row in range(shape[0]):
+                #print(row)
+                SC = np.dot(k_target_value_S_matrix[row,:],covarience)
+                sigma_k = np.dot(SC,np.transpose(k_target_value_S_matrix[row,:]))
+                sigma_k = np.sqrt(sigma_k)
+                #print(row)
+                #print(k_target_values_parsed_csv['Reaction'][row])
+                indx = reaction_list_from_mechanism.index(k_target_values_parsed_csv['Reaction'][row])
+                sigma_list_for_target_ks[unique_reactions.index(indx)].append(sigma_k)
+                
+            return sigma_list_for_target_ks
+        
+        def calculating_target_value_ks_from_cantera_for_sigmas(k_target_values_parsed_csv,gas,unique_reactions,six_parameter_fit_dictonary,master_equation_reactions):
+            target_value_ks = [[] for reaction in range(len(unique_reactions))]
+            
+            
+            
+            target_reactions = k_target_values_parsed_csv['Reaction']
+            target_temp = k_target_values_parsed_csv['temperature']
+            target_press = k_target_values_parsed_csv['pressure']
+            reactions_in_cti_file = gas.reaction_equations()
+            for i,reaction in enumerate(target_reactions): 
+                if reaction in master_equation_reactions:
+                    k = calculate_six_parameter_fit(reaction,six_parameter_fit_dictonary,target_temp[i])
+                    indx = reactions_in_cti_file.index(reaction)
+                    target_value_ks[unique_reactions.index(indx)].append(k)
+                #ask about the mixture composition
+                else:
+                    if target_press[i] == 0:
+                        pressure = 1e-9
+                    else:
+                        pressure = target_press[i]
+                        
+                    gas.TPX = target_temp[i],pressure*101325,{'Ar':.99}
+                    reaction_number_in_cti = reactions_in_cti_file.index(reaction)
+                    k = gas.forward_rate_constants[reaction_number_in_cti]
+                    indx = reaction_list_from_mechanism.index(reaction)
+                    target_value_ks[unique_reactions.index(indx)].append(k)
+                #check and make sure we are subtracting in the correct order 
+
+            return target_value_ks
     
+    
+        if bool(self.target_value_rate_constant_csv) and self.k_target_values=='On':
+            
+            
+            #make two unique
+            unique_reactions_optimized=[]
+            unique_reactions_original = []
+            
+            reaction_list_from_mechanism_original = gas_original.reaction_equations()
+            reaction_list_from_mechanism = gas_optimized.reaction_equations()
+            k_target_value_csv = pd.read_csv(self.target_value_rate_constant_csv)     
+            for row in range(k_target_value_csv.shape[0]):
+                unique_reactions_optimized.append(reaction_list_from_mechanism.index(k_target_value_csv['Reaction'][row]))
+                unique_reactions_original.append(reaction_list_from_mechanism_original.index(k_target_value_csv['Reaction'][row]))
+            unique_reactions_optimized = unique_list(unique_reactions_optimized)
+            unique_reactions_original = unique_list(unique_reactions_original)
+
+            
+            sigma_list_for_target_ks_optimized = calculate_sigmas_for_rate_constants(self.k_target_value_S_matrix,k_target_value_csv,unique_reactions_optimized,gas_optimized,self.covarience)
+            self.sigma_list_for_target_ks_optimized = sigma_list_for_target_ks_optimized
+            sigma_list_for_target_ks_original = calculate_sigmas_for_rate_constants(self.k_target_value_S_matrix,k_target_value_csv,unique_reactions_original,gas_original,self.original_covariance)
+            self.sigma_list_for_target_ks_original = sigma_list_for_target_ks_original
+            ######################  
+            target_value_temps_optimized,target_value_ks_optimized = sort_rate_constant_target_values(k_target_value_csv,unique_reactions_optimized,gas_optimized)
+            target_value_temps_original,target_value_ks_original = sort_rate_constant_target_values(k_target_value_csv,unique_reactions_original,gas_original)
+           ############################################# 
+            target_value_ks_calculated_with_cantera_optimized = calculating_target_value_ks_from_cantera_for_sigmas(k_target_value_csv,gas_optimized,unique_reactions_optimized,six_parameter_fit_dict_optimized,master_equation_reactions)
+            target_value_ks_calculated_with_cantera_original = calculating_target_value_ks_from_cantera_for_sigmas(k_target_value_csv,gas_original,unique_reactions_original,six_parameter_fit_dict_nominal,master_equation_reactions)
+           
+            for i,reaction in enumerate(unique_reactions_optimized):
+                plt.figure()
+                Temp_optimized,k_optimized = rate_constant_over_temperature_range_from_cantera(reaction,
+                                                                  gas_optimized,
+                                                                  initial_temperature=250,
+                                                                  final_temperature=2500,
+                                                                  pressure=1,
+                                                                  conditions={'H2':2,'O2':1,'Ar':4},
+                                                                  dictonary = six_parameter_fit_dict_optimized,
+                                                                  master_equation_reactions = master_equation_reactions)
+                
+                plt.semilogy(Temp_optimized,k_optimized,'b')
+                #calculate sigmas 
+                #print(sigma_list_for_target_ks_optimized[i])
+                high_error_optimized = np.exp(np.array(sigma_list_for_target_ks_optimized[i]))
+                #print(high_error_optimized)
+                high_error_optimized = np.multiply(high_error_optimized,target_value_ks_calculated_with_cantera_optimized[i])
+                
+                
+                low_error_optimized = np.exp(np.array(sigma_list_for_target_ks_optimized[i])*-1)
+                low_error_optimized = np.multiply(low_error_optimized,target_value_ks_calculated_with_cantera_optimized[i])    
+                
+               # plt.semilogy(target_value_temps_optimized[i],high_error_optimized,'b--')   
+                
+                a, b = zip(*sorted(zip(target_value_temps_optimized[i],high_error_optimized)))
+
+                #plt.scatter(a,b,color='blue')
+                
+                plt.semilogy(a,b,'b--')
+                
+                a, b = zip(*sorted(zip(target_value_temps_optimized[i],low_error_optimized)))  
+                plt.semilogy(a,b,'b--')
+                #plt.scatter(a,b,color='blue')
+               # print(a,b)
+                Temp_original,k_original = rate_constant_over_temperature_range_from_cantera(reaction_list_from_mechanism_original.index(reaction_list_from_mechanism[reaction]),
+                                                                  gas_original,
+                                                                  initial_temperature=250,
+                                                                  final_temperature=2500,
+                                                                  pressure=1,
+                                                                  conditions={'H2':2,'O2':1,'Ar':4},
+                                                                  dictonary = six_parameter_fit_dict_nominal,
+                                                                  master_equation_reactions = master_equation_reactions)
+                
+                plt.semilogy(Temp_original,k_original,'r')
+               # plt.xlim((0,3000))
+                #plt.ylim((10**9,10**15))
+                
+                #high_error_original = np.exp(sigma_list_for_target_ks_original[unique_reactions_original.index(reaction_list_from_mechanism_original.index(reaction_list_from_mechanism[reaction]))])
+                #high_error_original = np.multiply(high_error_original,target_value_ks_calculated_with_cantera_original[unique_reactions_original.index(reaction_list_from_mechanism_original.index(reaction_list_from_mechanism[reaction]))])
+                
+               
+                #low_error_original = np.exp(np.array(sigma_list_for_target_ks_original[unique_reactions_original.index(reaction_list_from_mechanism_original.index(reaction_list_from_mechanism[reaction]))])*-1)
+                #low_error_original = np.multiply(low_error_original,target_value_ks_calculated_with_cantera_original[unique_reactions_original.index(reaction_list_from_mechanism_original.index(reaction_list_from_mechanism[reaction]))])  
+                
+#                a, b = zip(*sorted(zip(target_value_temps_original[unique_reactions_original.index(reaction_list_from_mechanism_original.index(reaction_list_from_mechanism[reaction]))],high_error_original)))  
+                #plt.semilogy(a,b,'r--')
+                #plt.scatter(a,b,color='red')
+                
+                
+                #a, b = zip(*sorted(zip(target_value_temps_original[unique_reactions_original.index(reaction_list_from_mechanism_original.index(reaction_list_from_mechanism[reaction]))],low_error_original)))  
+                #plt.semilogy(a,b,'r--')
+                #plt.scatter(a,b,color='red')
+                
+                plt.semilogy(target_value_temps_optimized[i],target_value_ks_optimized[i],'o',color='black')
+                
+                plt.xlabel('Temperature (K)')
+                plt.ylabel('Kmol/m^3-s')
+                plt.title(reaction_list_from_mechanism[reaction])
+                
+        elif bool(self.target_value_rate_constant_csv) and self.k_target_values=='Off':
+            
+            unique_reactions_optimized=[]
+            unique_reactions_original = []
+            reaction_list_from_mechanism_original = gas_original.reaction_equations()
+            reaction_list_from_mechanism = gas_optimized.reaction_equations()
+            
+            k_target_value_csv = pd.read_csv(self.target_value_rate_constant_csv)     
+            for row in range(k_target_value_csv.shape[0]):
+                unique_reactions_optimized.append(reaction_list_from_mechanism.index(k_target_value_csv['Reaction'][row]))
+                unique_reactions_original.append(reaction_list_from_mechanism_original.index(k_target_value_csv['Reaction'][row]))
+            unique_reactions_optimized = unique_list(unique_reactions_optimized)
+            unique_reactions_original = unique_list(unique_reactions_original)
+
+            
+            
+            
+          ######################  
+            target_value_temps_optimized,target_value_ks_optimized = sort_rate_constant_target_values(k_target_value_csv,unique_reactions_optimized,gas_optimized)
+            target_value_temps_original,target_value_ks_original = sort_rate_constant_target_values(k_target_value_csv,unique_reactions_original,gas_original)
+           ############################################# 
+            target_value_ks_calculated_with_cantera_optimized = calculating_target_value_ks_from_cantera_for_sigmas(k_target_value_csv,gas_optimized,unique_reactions_optimized)
+            target_value_ks_calculated_with_cantera_original = calculating_target_value_ks_from_cantera_for_sigmas(k_target_value_csv,gas_original,unique_reactions_original)
+           
+            for i,reaction in enumerate(unique_reactions_optimized):
+                plt.figure()
+                Temp_optimized,k_optimized = rate_constant_over_temperature_range_from_cantera(reaction,
+                                                                  gas_optimized,
+                                                                  initial_temperature=250,
+                                                                  final_temperature=2500,
+                                                                  pressure=1,
+                                                                  conditions={'H2':2,'O2':1,'Ar':4})
+                
+                plt.semilogy(Temp_optimized,k_optimized,'b')
+
+                    
+                Temp_original,k_original = rate_constant_over_temperature_range_from_cantera(unique_reactions_original[unique_reactions_original.index(reaction)],
+                                                                  gas_original,
+                                                                  initial_temperature=250,
+                                                                  final_temperature=2500,
+                                                                  pressure=1,
+                                                                  conditions={'H2':2,'O2':1,'Ar':4})
+                
+                plt.semilogy(Temp_original,k_original,'r')
+                
+                
+                plt.semilogy(target_value_temps_optimized[i],target_value_ks_optimized[i],'o',color='black')
+                plt.xlabel('Temperature (K)')
+                plt.ylabel('Kmol/m^3-s')
+                plt.title(reaction_list_from_mechanism[reaction])      
 
                 
                 
