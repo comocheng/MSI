@@ -26,7 +26,7 @@ class JSR_steadystate(sim.Simulation):
                  processor:ctp.Processor=None,cti_path="", 
                  save_physSensHistories=0,moleFractionObservables:list=[],
                  absorbanceObservables:list=[],concentrationObservables:list=[],
-                 fullParsedYamlFile:dict={}):
+                 fullParsedYamlFile:dict={},residence_time:float=1.0,pvalveCoefficient:float=0.01,maxpRise:float=0.001):
         
         sim.Simulation.__init__(self,pressure,temperature,observables,kineticSens,physicalSens,
                                 conditions,processor,cti_path)
@@ -38,6 +38,10 @@ class JSR_steadystate(sim.Simulation):
         self.moleFractionObservables = moleFractionObservables
         self.absorbanceObservables = absorbanceObservables
         self.fullParsedYamlFile =  fullParsedYamlFile
+        self.pvalveCoefficient=pvalveCoefficient
+        self.maxPrise=maxpRise
+        self.energycon='off'
+        self.residence_time=residence_time
         
         if save_physSensHistories == 1:
             self.physSensHistories = []
@@ -46,6 +50,11 @@ class JSR_steadystate(sim.Simulation):
         self.rtol=1e-6
         self.atol=1e-6
         self.solution=None
+        
+        
+    def set_geometry(self,volume=0.1):
+        self.reactor_volume=volume
+        
         
     def printVars(self):
         print()
@@ -75,33 +84,33 @@ class JSR_steadystate(sim.Simulation):
     
     
     
-    def run(self,):
+    def run(self):
         
-        gas=processor.solution.P
-        reactorPressure=gas
-        pressureValveCoefficient=pvalveCoefficient
-        maxPressureRiseAllowed=maxPrise
+        gas=self.processor.solution
+        reactorPressure=gas.P
+        pressureValveCoefficient=self.pvalveCoefficient
+        maxPressureRiseAllowed=self.maxPrise
         
         
         #Build the system components for JSR
         fuelAirMixtureTank=ct.Reservoir(gas)
         exhaust=ct.Reservoir(gas)
         
-        stirredReactor=ct.IdealGasReactor(gas,energy=energycon,volume=volume)
+        stirredReactor=ct.IdealGasReactor(gas,energy=self.energycon,volume=self.reactor_volume)
         massFlowController=ct.MassFlowController(upstream=fuelAirMixtureTank,
-                                                 downstream=stirredReactor,mdot=stirredReactor.mass/restime)
+                                                 downstream=stirredReactor,mdot=stirredReactor.mass/self.residence_time)
         pressureRegulator=ct.Valve(upstream=stirredReactor,downstream=exhaust,K=pressureValveCoefficient)
         reactorNetwork=ct.ReactorNet([stirredReactor])
         
-        if bool(self.moleFractionObservables) and self.kineticSens==1:
+        if bool(self.observables) and self.kineticSens==1:
             for i in range(gas.n_reactions):
                 stirredReactor.add_sensitivity_reaction(i)
             
-        if self.kineticSens and bool(self.moleFractionObservables)==False:
-            except:
+        if self.kineticSens and bool(self.observables)==False:
+            #except:
                 print('Please supply a non-empty list of observables for sensitivity analysis or set kinetic_sens=0')
-        if self.physicalSens==1 and bool(self.moleFractionObservables)==False:
-            except:
+        if self.physicalSens==1 and bool(self.observables)==False:
+            #except:
                 print('Please supply a non-empty list of observables for sensitivity analysis or set physical_sens=0')
         
         # now compile a list of all variables for which we will store data
@@ -116,13 +125,13 @@ class JSR_steadystate(sim.Simulation):
         
         
         #Establish a matrix to hold sensitivities for kinetic parameters, along with tolerances
-        if self.kineticSens==1 and bool(self.moleFractionObservables):
+        if self.kineticSens==1 and bool(self.observables):
             #senscolumnNames = ['Reaction']+observables     
-            senscolumnNames = self.moleFractionObservables
+            senscolumnNames = self.observables
             #sensArray = pd.DataFrame(columns=senscolumnNames)
             #senstempArray = np.zeros((gas.n_reactions,len(observables)))
-            dfs = [pd.DataFrame() for x in range(len(self.moleFractionObservables))]
-            tempArray = [np.zeros(self.processor.solution.n_reactions) for x in range(len(self.moleFractionObservables))]
+            dfs = [pd.DataFrame() for x in range(len(self.observables))]
+            tempArray = [np.zeros(self.processor.solution.n_reactions) for x in range(len(self.observables))]
             
             reactorNetwork.rtol_sensitivity = self.rtol
             reactorNetwork.atol_sensitivity = self.atol        
@@ -130,10 +139,11 @@ class JSR_steadystate(sim.Simulation):
         
         reactorNetwork.advance_to_steady_state()
         final_pressure=stirredReactor.thermo.P
-        sens=reactorNetwork.sensitivites()
-        if self.kineticSens==1 and bool(self.moleFractionObservables):
+        sens=reactorNetwork.sensitivities()
+        if self.kineticSens==1 and bool(self.observables):
             for k in range(len(self.moleFractionObservables)):
-                dfs[k] = dfs[k].append(((pd.DataFrame(sens[k,:])).transpose()),ignore_index=True)        
+                dfs[k] = dfs[k].append(((pd.DataFrame(sens[k,:])).transpose()),ignore_index=True)
+        toc = time.time()
         print('Simulation Took {:3.2f}s to compute'.format(toc-tic))
    
         columnNames = []
@@ -148,7 +158,7 @@ class JSR_steadystate(sim.Simulation):
         data.columns=columnNames
         pressureDifferential = timeHistory['pressure'].max()-timeHistory['pressure'].min()
         if(abs(pressureDifferential/reactorPressure) > maxPressureRiseAllowed):
-            except:
+            #except:
                 print("WARNING: Non-trivial pressure rise in the reactor. Adjust K value in valve")
         
         if self.kineticSens==1:
