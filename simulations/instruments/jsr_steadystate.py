@@ -173,6 +173,39 @@ class JSR_steadystate(sim.Simulation):
         
         
         
+class JSR_multiTemp_steadystate(sim.Simulation):
+        
+    def __init__(self,volume:float,pressure:float,temperatures:list,observables:list,
+                 kineticSens:int,physicalSens:int,conditions:dict,thermalBoundary,mechanicalBoundary,
+                 processor:ctp.Processor=None,cti_path="", 
+                 save_physSensHistories=0,moleFractionObservables:list=[],
+                 absorbanceObservables:list=[],concentrationObservables:list=[],
+                 fullParsedYamlFile:dict={},residence_time:float=1.0,pvalveCoefficient:float=0.01,maxpRise:float=0.001):
+        
+#    sim.Simulation.__init__(self,pressure,temperature,observables,kineticSens,physicalSens,
+#                                conditions,processor,cti_path)
+        self.volume=volume
+        self.temperatures=temperatures
+        self.JSR_objects=[]
+        for i in range(len(self.temperatures)):
+            self.JSR_objects.append(JSR_steadystate(pressure,self.temperatures[i],observables,
+                 kineticSens,physicalSens,conditions,thermalBoundary,mechanicalBoundary,
+                 processor,cti_path, 
+                 save_physSensHistories,moleFractionObservables,
+                 absorbanceObservables,concentrationObservables,
+                 fullParsedYamlFile,residence_time,pvalveCoefficient,maxpRise))
+            
+            
+            
+    def run(self):
+        
+        for i in range(len(self.JSR_objects)):
+            self.JSR_objects[i].set_geometry(self.volume)
+            
+            self.JSR_objects[i].run()
+        
+        
+        
         
         
         
